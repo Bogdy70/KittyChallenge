@@ -1,0 +1,4 @@
+[
+  { "id": "admin", "role": "admin", "username": "admin", "displayName": "Organizatorul", "password": "INLOCUIESTE-CU-O-PAROLA-PROPRIE" },
+  { "id": "birthday", "role": "player", "username": "sarbatorita", "displayName": "Sărbătorita", "password": "INLOCUIESTE-CU-ALTA-PAROLA-PROPRIE" }
+]
