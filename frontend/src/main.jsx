@@ -11,3 +11,5 @@ createRoot(document.getElementById("root")).render(
 import "./editor.css";
 
 import "./puzzle.css";
+
+import "./voice.css";

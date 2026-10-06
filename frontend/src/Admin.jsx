@@ -1,3 +1,4 @@
+import VoiceAdmin from "./VoiceAdmin";
 import TextEditor from "./TextEditor";
 import React, { useEffect, useState } from "react";
 import { api } from "./api";
@@ -232,7 +233,7 @@ export default function Admin({ settings, onSaved, notify }) {
           if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key))
             return;
           e.preventDefault();
-          const ids = ["party", "exercises", "texts", "progress"];
+          const ids = ["party", "exercises", "texts", "voice", "progress"];
           const current = ids.indexOf(tab);
           const next =
             e.key === "Home"
@@ -251,6 +252,7 @@ export default function Admin({ settings, onSaved, notify }) {
           ["party", "Petrecerea", "heart"],
           ["exercises", "Exercițiile", "matrix"],
           ["texts", "Textele", "spark"],
+          ["voice", "Vocea", "paw"],
           ["progress", "Progresul", "trophy"],
         ].map(([id, label, icon]) => (
           <button
@@ -269,7 +271,11 @@ export default function Admin({ settings, onSaved, notify }) {
         ))}
       </div>
       <ErrorBox>{error}</ErrorBox>
-      {tab === "party" ? (
+      {tab === "voice" ? (
+        <div role="tabpanel" id="panel-voice" aria-labelledby="tab-voice">
+          <VoiceAdmin notify={notify} />
+        </div>
+      ) : tab === "party" ? (
         <div
           className="admin-grid"
           role="tabpanel"

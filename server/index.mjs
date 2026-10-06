@@ -1,3 +1,4 @@
+import { createVoiceService } from "./voice.mjs";
 import { renderMessage, validateMessages } from "../shared/messages.mjs";
 import { readNetwork, addressUrl } from "./network.mjs";
 import http from "node:http";
@@ -56,7 +57,7 @@ async function readBody(req, limit = 300_000) {
   for await (const chunk of req) {
     size += chunk.length;
     if (size > limit)
-      throw fail(413, "Fișierul este prea mare. Limita este 8 MB.");
+      throw fail(413, "Datele trimise depășesc limita permisă.");
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);
@@ -73,6 +74,11 @@ export function createApp({
   dataDir = resolve(process.env.DATA_DIR || "data"),
   accountsPath = accountFile,
   staticDir = resolve("dist"),
+  voiceFetch = fetch,
+  voiceEnv = process.env,
+  voiceSecretsPath = resolve(
+    process.env.VOICE_SECRETS_FILE || "config/voice-secrets.json",
+  ),
 } = {}) {
   mkdirSync(dataDir, { recursive: true });
   mkdirSync(resolve(dataDir, "uploads"), { recursive: true });
@@ -215,6 +221,13 @@ export function createApp({
     }
     return false;
   }
+  const voice = createVoiceService(db, {
+    dataDir,
+    secretsPath: voiceSecretsPath,
+    fetchImpl: voiceFetch,
+    env: voiceEnv,
+    getMessages: () => settings().messages,
+  });
   const rates = new Map();
   const dummy = passwordHash(randomBytes(16).toString("hex"));
   const cleanup = setInterval(() => {
@@ -240,7 +253,7 @@ export function createApp({
     );
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
     );
     try {
       const url = new URL(req.url, "http://localhost");
@@ -254,6 +267,8 @@ export function createApp({
           throw fail(403, "Cerere dintr-o origine nepermisă.");
       }
       if (path === "/api/health") return json(res, 200, { ok: true });
+      if (path === "/api/voice/config" && method === "GET")
+        return json(res, 200, voice.publicConfig());
       if (path === "/api/content" && method === "GET")
         return json(res, 200, { messages: settings().messages });
       if (path === "/api/login" && method === "POST") {
@@ -319,6 +334,58 @@ export function createApp({
           403,
           renderMessage(settings().messages, "puzzle.locked.message"),
         );
+      if (path === "/api/voice/resolve" && method === "POST")
+        return json(
+          res,
+          200,
+          await voice.resolveSpeech(await jsonBody(req), user.id),
+        );
+      const audioRoute = path.match(
+        /^\/api\/voice\/files\/([a-f0-9-]+\.(?:mp3|wav|ogg|m4a))$/,
+      );
+      if (audioRoute && ["GET", "HEAD"].includes(method))
+        return voice.serve(req, res, audioRoute[1]);
+      if (path === "/api/admin/voice" && method === "GET")
+        return json(res, 200, voice.adminConfig());
+      if (path === "/api/admin/voice" && method === "PUT")
+        return json(res, 200, voice.saveConfig(await jsonBody(req)));
+      if (path === "/api/admin/voice/voices" && method === "GET")
+        return json(
+          res,
+          200,
+          await voice.voices(url.searchParams.get("page") || ""),
+        );
+      if (path === "/api/admin/voice/generate" && method === "POST")
+        return json(
+          res,
+          201,
+          await voice.generateClip(await jsonBody(req), user.id),
+        );
+      if (path === "/api/admin/voice/cache" && method === "DELETE")
+        return json(res, 200, voice.clearCache());
+      const clipRoute = path.match(
+        /^\/api\/admin\/voice\/clips\/([a-f0-9-]+)$/,
+      );
+      if (clipRoute && method === "DELETE")
+        return json(res, 200, voice.removeClip(clipRoute[1]));
+      if (path === "/api/admin/voice/clips" && method === "POST") {
+        const payload = await readBody(req, 15 * 1024 * 1024 + 25004);
+        if (payload.length < 5) throw fail(400, "Înregistrare invalidă.");
+        const length = payload.readUInt32BE(0);
+        if (length < 2 || length > 25000 || length + 4 >= payload.length)
+          throw fail(400, "Datele înregistrării nu sunt valide.");
+        let metadata;
+        try {
+          metadata = JSON.parse(payload.toString("utf8", 4, 4 + length));
+        } catch {
+          throw fail(400, "Datele înregistrării nu sunt valide.");
+        }
+        return json(
+          res,
+          201,
+          voice.upload(payload.subarray(4 + length), metadata),
+        );
+      }
       if (path === "/api/journey" && method === "GET")
         return json(res, 200, { puzzleUnlocked: puzzleAccess(user) });
       if (path === "/api/logout" && method === "POST") {

@@ -1,16 +1,6 @@
 import { useMessages } from "./Messages";
-import React, { useEffect, useId, useRef, useState } from "react";
-
-// Only one guide speaks at a time; unmounting another guide must not interrupt it.
-let currentVoice = null;
-function stopVoice() {
-  const reader = currentVoice;
-  currentVoice = null;
-  if (reader) {
-    window.speechSynthesis.cancel();
-    reader.stop();
-  }
-}
+import React, { useId } from "react";
+import { useGuideVoice } from "./Voice";
 
 // Original vector character: its parts stay separate so every animation remains crisp.
 export function KnightCat({ mood = "welcome", className = "" }) {
@@ -180,76 +170,20 @@ export function GuideSpeech({
 }) {
   const { t } = useMessages();
   title ??= t("guide.name");
-  const voiceOwner = useRef({});
-  const [talking, setTalking] = useState(false);
-  const [voiceNote, setVoiceNote] = useState("");
-  const [hasVoice, setHasVoice] = useState(false);
-  useEffect(() => {
-    setHasVoice(
-      "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
-    );
-  }, []);
-  useEffect(() => {
-    setTalking(false);
-    setVoiceNote("");
-    return () => {
-      if (currentVoice?.owner === voiceOwner.current) stopVoice();
-    };
-  }, [message, detail]);
-  function listen() {
-    const synth = window.speechSynthesis;
-    if (talking) {
-      stopVoice();
-      return;
-    }
-    stopVoice();
-    const voice = synth.getVoices().find((v) => /^ro([_-]|$)/i.test(v.lang));
-    if (!voice) {
-      setVoiceNote(
-        t(
-          "guide.vocea-romana-nu-este-instalata-pe-acest-dispozitiv-iti-las-povest",
-        ),
-      );
-      return;
-    }
-    setVoiceNote("");
-    const line = new SpeechSynthesisUtterance(
-      title + ". " + (message || "") + " " + (detail || ""),
-    );
-    line.lang = "ro-RO";
-    line.voice = voice;
-    line.rate = 0.95;
-    const reader = {
-      owner: voiceOwner.current,
-      stop: () => setTalking(false),
-    };
-    currentVoice = reader;
-    line.onstart = () => {
-      if (currentVoice === reader) setTalking(true);
-    };
-    line.onend = () => {
-      if (currentVoice === reader) {
-        currentVoice = null;
-        setTalking(false);
-      }
-    };
-    line.onerror = (event) => {
-      if (currentVoice !== reader) return;
-      currentVoice = null;
-      setTalking(false);
-      if (!["canceled", "interrupted"].includes(event.error))
-        setVoiceNote(
-          t("guide.nu-pot-porni-vocea-acum-putem-continua-cu-mesajele-scrise"),
-        );
-    };
-    try {
-      synth.speak(line);
-    } catch {
-      line.onerror({
-        error: "unavailable",
-      });
-    }
-  }
+  const {
+    talking,
+    loading,
+    note: voiceNote,
+    kind,
+    showControls,
+    audioRef,
+    enabled,
+    listen,
+    onPlay,
+    onEnd,
+    onError,
+    onPause,
+  } = useGuideVoice({ title, message, detail, t });
   return (
     <div className={`guide-speech ${className} ${talking ? "is-talking" : ""}`}>
       <div className="guide-avatar">
@@ -259,19 +193,23 @@ export function GuideSpeech({
       <div className={`guide-bubble guide-${mood}`}>
         <div className="guide-caption">
           <span>{t("guide.ghidul-tau-cu-labute")}</span>
-          {speak && hasVoice && (
+          {speak && enabled && (
             <button
               type="button"
               className="guide-voice"
               onClick={listen}
-              aria-pressed={talking}
+              aria-pressed={talking || loading}
               aria-label={
-                talking
+                talking || loading
                   ? t("guide.opreste-vocea-cavalerului")
                   : t("guide.asculta-mesajul-cavalerului")
               }
             >
-              {talking ? t("guide.opreste") : t("guide.asculta")}
+              {loading
+                ? t("voice.preparing")
+                : talking
+                  ? t("guide.opreste")
+                  : t("guide.asculta")}
             </button>
           )}
         </div>
@@ -285,6 +223,21 @@ export function GuideSpeech({
           {message && <p>{message}</p>}
           {detail && <p className="guide-detail">{detail}</p>}
         </div>
+        <audio
+          ref={audioRef}
+          className="guide-audio"
+          controls={showControls}
+          hidden={!showControls}
+          preload="none"
+          onPlay={onPlay}
+          onEnded={onEnd}
+          onError={onError}
+          onPause={onPause}
+          aria-label={t("voice.player")}
+        />
+        {kind === "generated" && (
+          <small className="voice-kind">{t("voice.aiLabel")}</small>
+        )}
         {voiceNote && (
           <small className="voice-note" role="status">
             {voiceNote}

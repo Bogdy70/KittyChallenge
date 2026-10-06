@@ -1,3 +1,5 @@
+import { checkVoiceAdmin, checkVoicePlayer } from "./voice-browser-check.mjs";
+import { wav } from "../tests/audio-fixture.mjs";
 import { chromium } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
@@ -26,7 +28,21 @@ writeFileSync(
     },
   ]),
 );
-const server = createApp({ dataDir: dir, accountsPath });
+const server = createApp({
+  dataDir: dir,
+  accountsPath,
+  voiceSecretsPath: join(dir, "voice-secrets.json"),
+  voiceEnv: {},
+  voiceFetch: async (url) =>
+    url.includes("/v2/voices")
+      ? Response.json({
+          voices: [
+            { voice_id: "knight_test", name: "Cavaler test", category: "test" },
+          ],
+          has_more: false,
+        })
+      : new Response(wav(5), { headers: { "Content-Type": "audio/wav" } }),
+});
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const base = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({
@@ -649,6 +665,7 @@ try {
   await overflow();
   await page.getByLabel("Caută un text", { exact: true }).fill("Vocea română");
   assert.equal(await page.locator(".message-field").count(), 1);
+  await checkVoiceAdmin(page, out, overflow);
   await page.getByRole("button", { name: "Matrici", exact: true }).click();
   await page.getByRole("heading", { name: "Prima misiune a Lunei" }).waitFor();
   await page.getByRole("button", { name: "Un indiciu", exact: true }).click();
@@ -696,9 +713,10 @@ try {
     await page.getByRole("button", { name: "Atelier", exact: true }).count(),
     0,
   );
+  await checkVoicePlayer(page);
   assert.deepEqual(errors, [], "no browser runtime errors");
   console.log(
-    "Browser checks passed: login, matrix completion, hints, puzzle placement/persistence, mobile layouts, admin settings/photo/exercise, 500 pieces, editable messages and JSON import/export, gated journey, native fullscreen, mobile touch and landscape/fallback.",
+    "Browser checks passed: login, matrix completion, hints, puzzle placement/persistence, mobile layouts, admin settings/photo/exercise, 500 pieces, editable messages and JSON import/export, gated journey, native fullscreen, mobile touch and landscape/fallback, recorded/generated voice, cache and mobile audio fallback.",
   );
 } catch (e) {
   if (page)

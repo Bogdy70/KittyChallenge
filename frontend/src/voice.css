@@ -1,0 +1,170 @@
+.voice-studio {
+  display: grid;
+  gap: 1.3rem;
+}
+.voice-intro {
+  background: linear-gradient(115deg, #ffe17d, #ffb1df 55%, #bcecff);
+}
+.voice-intro h2 {
+  margin: 0.5rem 0;
+}
+.voice-intro p {
+  max-width: 75ch;
+}
+.voice-admin-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  align-items: start;
+  gap: 1.3rem;
+}
+.voice-settings,
+.voice-clip-form {
+  display: grid;
+  gap: 1rem;
+}
+.voice-settings label,
+.voice-clip-form label:not(.voice-upload) {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  font-weight: 700;
+}
+.voice-settings input:not([type="checkbox"]),
+.voice-settings select,
+.voice-clip-form input,
+.voice-clip-form select,
+.voice-clip-form textarea {
+  width: 100%;
+  min-width: 0;
+}
+.voice-settings input[type="range"] {
+  accent-color: #cf298e;
+}
+.voice-settings h3,
+.voice-recordings h3 {
+  margin: 0;
+}
+.voice-provider-fields {
+  display: grid;
+  gap: 1rem;
+  border-top: 1px solid #8e4c9130;
+  padding-top: 1.3rem;
+}
+.voice-settings .voice-checkbox {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+}
+.voice-list-action,
+.voice-clip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.voice-recordings {
+  display: grid;
+  gap: 1.3rem;
+  min-width: 0;
+}
+.voice-clip-form {
+  background: linear-gradient(145deg, #d4fbdc, #c6eaff);
+}
+.voice-preview {
+  background: linear-gradient(130deg, #eddbff, #ffd6ee);
+}
+.voice-preview .guide-speech {
+  margin-top: 1rem;
+}
+.voice-upload {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.voice-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.voice-upload:focus-within {
+  outline: 3px solid #542092;
+  outline-offset: 3px;
+}
+.voice-upload.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.voice-clip {
+  display: grid;
+  gap: 0.65rem;
+  border-top: 1px solid #8e4c9130;
+  padding: 1.2rem 0;
+  min-width: 0;
+}
+.voice-clip:first-of-type {
+  margin-top: 1rem;
+}
+.voice-clip > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.voice-clip p {
+  margin: 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.voice-clip audio,
+.guide-audio {
+  width: 100%;
+  min-width: 0;
+}
+.voice-clip .text-button {
+  justify-self: start;
+}
+.voice-cache {
+  background: #fff1bb;
+}
+.guide-audio:not([hidden]) {
+  display: block;
+  margin-top: 0.8rem;
+}
+.guide-audio[hidden] {
+  display: none;
+}
+.voice-kind {
+  display: block;
+  font-size: 0.75rem;
+  color: #6a3976;
+  margin-top: 0.5rem;
+}
+@media (max-width: 850px) {
+  .voice-admin-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 520px) {
+  .voice-settings,
+  .voice-recordings > .panel {
+    padding: 1.1rem;
+  }
+  .voice-clip-actions .button {
+    width: 100%;
+  }
+  .voice-settings .eyebrow {
+    white-space: normal;
+    line-height: 1.5;
+  }
+  .voice-preview .guide-speech {
+    align-items: start;
+  }
+}
+
+.voice-settings .voice-checkbox input {
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color: #cf298e;
+}

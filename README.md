@@ -88,11 +88,45 @@ Administratorul poate testa oricare provocare, în orice ordine. Blocarea este v
 
 Un pisoi alb-negru în armură, cu pelerină magenta și sabie, te însoțește de la autentificare la ultima piesă. Ilustrația SVG este originală: clipește, respiră, mișcă pelerina și ridică sabia la reușite. Bulele lui conțin indicii reale, explicațiile soluțiilor și încurajări după încercări.
 
-Butonul **Ascultă** citește mesajul numai la cerere, prin vocea română instalată pe dispozitiv (Web Speech API). Dacă aceasta lipsește, ghidul explică situația și mesajul rămâne scris. Nu este necesar un serviciu AI sau o cheie API.
+Butonul **Ascultă** redă vocea numai la cerere. Cavalerul se animă în timpul redării și poate folosi înregistrări încărcate, audio generat sau vocea română a dispozitivului. O singură bulă a ghidului vorbește la un moment dat; schimbarea paginii sau a replicii oprește redarea. Mesajele rămân mereu disponibile în scris.
+
+## Adaugă ușor o voce
+
+Deschide **Atelier → Vocea**. Varianta inițială, **Înregistrări + vocea browserului**, funcționează fără cheie API.
+
+### Înregistrări, fără servicii externe
+
+1. La **Adaugă o replică audio**, alege replica din listă sau scrie textul exact afișat în bula cavalerului.
+2. Dă-i un nume și apasă **Încarcă audio**: MP3, WAV, OGG sau M4A, maximum **15 MB**. Poate fi vocea ta, o înregistrare pregătită sau un audio generat în altă aplicație.
+3. Apasă **Ascultă** în probă. Audio-ul este salvat imediat și se poate reda pe calculator și telefon, inclusiv când lipsește o voce română instalată.
+
+Asocierea folosește textul principal al bulei, cu spațiile normalizate. Fișierul trebuie să conțină acea replică; aplicația nu transcrie înregistrarea. Încărcarea unui alt audio pentru același text îl înlocuiește. Dacă modifici replica în editorul de texte, înregistrarea veche apare ca **Text modificat** și trebuie refăcută pentru textul nou. Titlul și detaliile suplimentare nu sunt citite automat de un fișier înregistrat. Pentru indicii cu numere diferite, folosește generarea dinamică sau o înregistrare pentru combinația exactă.
+
+Biblioteca are player și ștergere pentru fiecare înregistrare. Pe telefoanele care blochează pornirea audio după cererea către server, cavalerul afișează un player: apasă redare acolo. Compatibilitatea codec-ului depinde de browser; MP3 sau WAV PCM sunt variante simple pentru compatibilitate largă.
+
+### Generare dinamică prin ElevenLabs, opțională
+
+1. Adaugă cheia API în **Atelier → Vocea** și salvează. Cheia rămâne pe server, în fișierul local ignorat de Git.
+2. Apasă **Încarcă vocile din cont** și alege o voce; poți introduce și **Voice ID** direct. Salvează selecția.
+3. Alege **Înregistrări + generare ElevenLabs**, apoi salvează și încearcă **Ascultă**. Înregistrările potrivite au prioritate; celelalte replici se generează din textul actual, cu titlul și detaliile sale.
+
+Sunt disponibile modelele Multilingual v2 și Flash v2.5, care [acceptă româna](https://elevenlabs.io/docs/overview/models). Poți ajusta stabilitatea, expresivitatea și limita zilnică de caractere. Generarea trimite textul replicii către ElevenLabs și folosește creditele contului tău; aplicația nu activează un abonament și nu are o cheie inclusă. **Generează și păstrează replica** creează explicit o înregistrare reutilizabilă chiar dacă modul dinamic rămâne oprit.
+
+**Un fișier audio încărcat nu clonează vocea pentru texte noi.** Pentru o voce proprie, creează/adaugă vocea în contul ElevenLabs, apoi selecteaz-o aici. Vezi [Voice cloning](https://elevenlabs.io/docs/eleven-api/concepts/voice-cloning) și [cum găsești Voice ID](https://help.elevenlabs.io/hc/en-us/articles/14599760033937-How-do-I-find-the-voice-ID-of-my-voices-via-the-website-and-API). Poți crea acolo un timbru jucăuș pentru cavaler și îl poți folosi la replicile românești.
+
+Replicile identice cu aceeași voce, model și setări sunt refolosite din cache pentru ambele conturi. Limita inițială este **10.000 de caractere pe zi UTC**, pentru cereri noi; cererile trimise sunt contorizate inclusiv dacă serviciul eșuează, pentru a păstra limita conservatoare. Nu reprezintă un raport de facturare ElevenLabs. Există maximum două generări simultane și 20 de cereri noi pe minut per cont. Cache-ul păstrează cel mult 500 de fișiere / 100 MB, eliminând cele mai vechi când depășește limita. **Golește cache-ul audio** păstrează înregistrările încărcate și cele generate explicit pentru bibliotecă.
+
+La lipsa înregistrării sau la o eroare de generare, ghidul încearcă vocea română locală (Web Speech API). Tonalitatea și viteza din atelier ajustează doar această voce; nu transformă timbrul fișierelor audio. Dacă dispozitivul nu are voce română, mesajul rămâne scris.
+
+Fișierele sunt în **data/audio/**; configurația, asocierile, utilizarea și cache-ul sunt în SQLite. Accesul la audio cere o sesiune validă; numai administratorul îl poate încărca, genera pentru bibliotecă, înlocui sau șterge. Audio-ul nu depinde de deblocarea puzzle-ului, astfel încât ghidul să poată vorbi pe parcursul matricelor. Fotografia-surpriză rămâne protejată.
+
+Cheia salvată în atelier se păstrează local, în clar, în **config/voice-secrets.json**, exclus din Git și din imaginile Docker. Protejează accesul la fișier la fel ca pentru conturi. Poți folosi alternativ variabila de mediu **ELEVENLABS_API_KEY**, care are prioritate și se modifică din mediul serverului; **VOICE_SECRETS_FILE** poate indica altă cale locală. Modificările din atelier nu cer repornire; modificarea variabilelor de mediu cere repornirea serverului. Pentru Docker, cheia poate fi pusă în **.env** sau configurată în atelier; fișierul local și audio-ul persistă în volumele existente. Integrarea folosește [API-ul oficial TTS](https://elevenlabs.io/docs/api-reference/text-to-speech/convert) și [catalogul de voci](https://elevenlabs.io/docs/api-reference/voices/search).
+
+[Atelierul pentru voce](docs/voice-admin.png)
 
 ## Textele, indiciile și replicile
 
-Deschide **Atelier → Textele**. Catalogul are **236 texte editabile**: autentificare, aniversare, navigare, replicile cavalerului, reacții, butoane, titluri, indicii și explicații. Caută un cuvânt sau alege o categorie. Previzualizarea folosește valori de exemplu.
+Deschide **Atelier → Textele**. Catalogul are **242 texte editabile**: autentificare, aniversare, navigare, replicile cavalerului, reacții, butoane, titluri, indicii și explicații. Caută un cuvânt sau alege o categorie. Previzualizarea folosește valori de exemplu.
 
 - Schimbă numele cavalerului; referințele cu `{guide}` se actualizează automat.
 - Folosește variabilele afișate sub câmp: `{recipient}`, `{scalar}`, `{determinant}`, `{row}`, `{col}` și celelalte variabile specifice acelui text.
@@ -116,7 +150,9 @@ frontend/src/
   Art.jsx                pisicuțe, iconițe, progres, confetti
   Messages.jsx           catalogul de texte, încărcare publică, context
   TextEditor.jsx         editare, previzualizare, export/import
-  Guide.jsx              cavaler SVG, dialog, voce opțională, aurora
+  Guide.jsx              cavaler SVG, dialog, aurora
+  Voice.jsx              redare, cache audio API, fallback și vocea browserului
+  VoiceAdmin.jsx         configurare voce, upload și bibliotecă audio
   MathChallenge.jsx      interfața exercițiilor
   PuzzleChallenge.jsx    puzzle, gesturi, zoom, salvare
   Admin.jsx              configurare, fotografii, exerciții, progres
@@ -124,12 +160,14 @@ frontend/src/
   styles.css             componente de bază și responsive
   celebration.css        paleta aniversară, ghid și animații
   puzzle.css             tablă cu dock persistent, fullscreen și landscape
+  voice.css              atelierul audio și playerul mobil
 server/
   index.mjs              API, sesiuni, SQLite și fișiere statice
   accounts.mjs           generare / validare conturi din fișier
   math.mjs               generare, validare, soluții și verificare
   puzzle.mjs             dimensiunile grilei și validarea progresului
   network.mjs            configurație de adresă și detectare Tailscale
+  voice.mjs              înregistrări, ElevenLabs, cache și audio privat
 shared/messages.mjs      texte implicite, variabile și validare comună
 public/                  ilustrații SVG originale
 tests/                   teste matematice și integrare API
@@ -142,8 +180,10 @@ Fișiere persistente:
 
 - `data/kitty.sqlite` — conturi, sesiuni, setări, exerciții și progres.
 - `data/uploads/` — fotografii încărcate; imaginile vechi rămân păstrate local.
+- `data/audio/` — înregistrări audio și replici generate.
 - `config/accounts.json` — configurarea locală a celor două conturi.
 - `config/network.json` — adresa și portul acestui calculator; exclus din Git.
+- `config/voice-secrets.json` — cheia ElevenLabs, dacă este configurată din atelier; exclusă din Git.
 
 Pentru backup simplu, oprește aplicația și copiază **data/** și **config/** împreună. Nu șterge aceste directoare la actualizarea codului.
 
@@ -198,7 +238,7 @@ Aceleași directoare `data/` și `config/` sunt montate în container. Implicit,
 
 Pentru găzduire publică, pune aplicația în spatele unui reverse proxy cu **HTTPS** și setează `COOKIE_SECURE=true`. Această implementare nu publică singură un site sau un tunel și nu configurează firewall-ul. Pe Linux, directoarele montate trebuie să permită scrierea utilizatorului containerului (`node`, UID 1000).
 
-Variabile opționale: `PORT` (3001), `HOST` (127.0.0.1), `DATA_DIR`, `ACCOUNTS_FILE`, `NETWORK_FILE`, `COOKIE_SECURE`. Pornirea Node folosește variabilele procesului; Docker Compose citește `.env`. Nu sunt necesare chei API sau servicii plătite.
+Variabile opționale: `PORT` (3001), `HOST` (127.0.0.1), `DATA_DIR`, `ACCOUNTS_FILE`, `NETWORK_FILE`, `COOKIE_SECURE`, `ELEVENLABS_API_KEY`, `VOICE_SECRETS_FILE`. Pornirea Node folosește variabilele procesului; Docker Compose citește `.env`. Înregistrările și vocea browserului funcționează fără chei API sau servicii plătite; generarea ElevenLabs este opțională.
 
 ## Verificări
 
@@ -211,6 +251,8 @@ npm run test:browser
 Testele browser folosesc Edge instalat în Windows. Pe Linux/macOS rulează înainte `npx playwright install chromium`. Conturile, fotografiile și progresul testelor sunt create într-un director temporar și apoi eliminate. Capturile sunt salvate local în `artifacts/`, exclus din Git.
 
 Sunt testate operațiile și fracțiile, 1.500 de seturi generate, identitatea `A × A⁻¹ = I`, validarea, permisiunile, conturile, sesiunile, schimbarea parolei, upload-ul privat și persistența. Testele în browser verifică desktop/mobil, rezolvarea matricelor, puzzle prin click / drag / tastatură, administrarea, redarea a 500 de piese, editorul de texte, export/import, personalizarea vizibilă după login și pe telefon, ordinea provocărilor, fullscreen nativ, păstrarea cutiei la zoom și scroll, selecția touch, layout-ul landscape și fallback-ul fără fullscreen. Testele API includ deblocarea permanentă, exercițiile personalizate și compatibilitatea cu seturile terminate în versiunea anterioară.
+
+Testele audio verifică upload și înlocuire, potrivirea textului, fișiere private și Range/HEAD, persistență, limite, cache comun, deduplicarea generărilor, cheia de mediu și erori fără divulgarea secretelor. În browser sunt verificate atelierul pe desktop și telefon, redarea WAV, generarea/cache-ul, înregistrarea unei replici generate, fallback-ul cu player după blocarea autoplay și oprirea la navigare. ElevenLabs este simulat în teste: nu se folosesc chei reale, nu se consumă credite și nu s-a făcut o probă cu serviciul real. Pentru o probă reală, configurează cheia și vocea în atelier.
 
 GitHub Actions rulează testele Node, compilarea și scenariile browser în Chromium. La eșec, capturile sunt disponibile ca artefact al rulării. `npm run format` formatează sursele cu Prettier.
 

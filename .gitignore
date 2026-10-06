@@ -7,3 +7,6 @@ config/accounts.json
 .DS_Store
 artifacts/
 config/network.json
+
+config/voice-secrets.json
+config/voice-secrets.json.*.tmp

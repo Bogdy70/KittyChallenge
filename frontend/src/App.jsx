@@ -1,3 +1,4 @@
+import { VoiceProvider } from "./Voice";
 import { useMessages, MessageProvider } from "./Messages";
 import React, { useEffect, useState, useCallback } from "react";
 import { api, useHash } from "./api";
@@ -644,10 +645,12 @@ function AppContent() {
 export default function App() {
   return (
     <MessageProvider>
-      <>
-        <AmbientBackground />
-        <AppContent />
-      </>
+      <VoiceProvider>
+        <>
+          <AmbientBackground />
+          <AppContent />
+        </>
+      </VoiceProvider>
     </MessageProvider>
   );
 }
