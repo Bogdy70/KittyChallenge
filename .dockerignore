@@ -1,0 +1,9 @@
+.git
+node_modules
+dist
+data
+config/accounts.json
+.env
+
+config/voice-secrets.json
+config/voice-secrets.json.*.tmp

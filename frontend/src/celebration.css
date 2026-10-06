@@ -1,0 +1,924 @@
+/* Birthday palette and animated scenery, shared across every screen. */
+:root {
+  background: #e4c7f7;
+  --muted: #655170;
+  --pink: #d61b81;
+  --pink-light: #ffbee1;
+  --lavender: #d3b5ff;
+  --mint: #b6ed91;
+  --yellow: #ffe46e;
+  --blue: #a9dcff;
+  --line: #845eaa35;
+}
+#root {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+}
+.ambient-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+  background: linear-gradient(
+    130deg,
+    #ffc5e3 0%,
+    #deb7ff 32%,
+    #adddff 62%,
+    #c5efa1 85%,
+    #ffe288 100%
+  );
+}
+.aurora {
+  position: absolute;
+  width: 65vmax;
+  height: 65vmax;
+  border-radius: 45% 55% 63% 37%;
+  filter: blur(55px);
+  opacity: 0.64;
+  will-change: transform;
+  animation: aurora-drift 23s ease-in-out infinite alternate;
+}
+.aurora-pink {
+  background: radial-gradient(ellipse, #ff65b9, #f69cd477 65%, transparent 72%);
+  left: -25vmax;
+  top: -25vmax;
+}
+.aurora-blue {
+  background: radial-gradient(ellipse, #62baff, #987dff77 65%, transparent 72%);
+  right: -25vmax;
+  top: 5vh;
+  animation-delay: -9s;
+}
+.aurora-green {
+  background: radial-gradient(ellipse, #86edb1, #c9f07888 65%, transparent 72%);
+  left: -10vmax;
+  bottom: -30vmax;
+  animation-delay: -16s;
+}
+.aurora-yellow {
+  background: radial-gradient(ellipse, #ffe876, #ffd97866 65%, transparent 72%);
+  right: -25vmax;
+  bottom: -35vmax;
+  animation-delay: -4s;
+}
+.ambient-grain {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(#71358326 0.7px, transparent 0.7px);
+  background-size: 7px 7px;
+  opacity: 0.2;
+}
+.ambient-spark {
+  position: absolute;
+  left: var(--left);
+  top: var(--top);
+  color: var(--spark-color);
+  opacity: 0.25;
+  font-size: 26px;
+  animation: spark-drift var(--duration) ease-in-out var(--delay) infinite;
+}
+.app-header {
+  background: #ecd3fabd;
+  border-bottom: 1px solid #fff7;
+  box-shadow: 0 5px 30px #5945890d;
+}
+.nav-item {
+  color: #584166;
+}
+.nav-item:hover {
+  background: #ffd5eb;
+}
+.nav-item.active {
+  background: linear-gradient(115deg, #fb94cf, #cbb0ff);
+  color: #56254c;
+  box-shadow: 0 3px 0 #923c8830;
+}
+.avatar {
+  background: #fc9aca;
+  color: #742054;
+}
+.brand-mark {
+  background: linear-gradient(135deg, #b6ed91, #82dce6);
+}
+.app-footer {
+  border-top-color: #8c579c38;
+  color: #62406c;
+}
+.hero {
+  padding: 32px;
+  margin-top: 28px;
+  border: 1px solid #ffffff80;
+  border-radius: 32px;
+  background: linear-gradient(120deg, #ffc0e2e8, #dfbdffe8 55%, #9cd9f6b8);
+  box-shadow:
+    0 14px 40px #6b398413,
+    inset 0 1px #fff8;
+}
+.hero-copy .eyebrow,
+.hero-chips,
+.story-footer,
+.page-heading .eyebrow {
+  color: #663d78;
+}
+.hero .hand-underline:after {
+  border-color: #cb1980;
+}
+.party-art:before {
+  background: linear-gradient(145deg, #fca4d4, #cba2ff 55%, #9ad9ff);
+  animation: birthday-blob 14s ease-in-out infinite alternate;
+}
+.party-art:after {
+  border-color: #9c57ae;
+}
+.age-art {
+  color: #e42d91;
+  text-shadow:
+    4px 5px 0 #ffe58c,
+    -1px -1px 0 #ffe5f4;
+}
+.age-art span {
+  color: #7c285c;
+}
+.sticker-white {
+  background: #a9eaff;
+}
+.sticker-yellow {
+  background: #ffe56d;
+}
+.art-spark.one {
+  color: #8040c7;
+}
+.art-spark.two,
+.little-star {
+  color: #4e9c38;
+}
+.art-spark.three {
+  color: #267dcc;
+}
+.ticker {
+  background: linear-gradient(
+    100deg,
+    #ffc276,
+    #ffe979,
+    #ade893,
+    #94d4ff,
+    #d6a4f7,
+    #ffa0d3
+  );
+  border-color: #fff8;
+  box-shadow: 0 6px 20px #714b8210;
+}
+.ticker > div > span {
+  color: #513559;
+}
+.ticker > div > span > span {
+  color: #be2778;
+}
+.challenge-card {
+  border: 1px solid #ffffffa0;
+  box-shadow: 0 8px 28px #5d40831c;
+}
+.challenge-card:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 25%,
+    #fff5 45%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.challenge-card:hover:before {
+  animation: card-shine 1s ease;
+}
+.math-card {
+  background: linear-gradient(145deg, #e0b4ff, #efa5d9);
+}
+.puzzle-card {
+  background: linear-gradient(145deg, #abe9c7, #cfed85);
+}
+.challenge-card > p {
+  color: #604867;
+}
+.progress-caption {
+  color: #63486f;
+}
+.progress-track {
+  background: #4e276925;
+  height: 8px;
+}
+.progress-track > span {
+  background: linear-gradient(90deg, #d12585, #8644d5);
+}
+.puzzle-card .progress-track > span,
+.puzzle-toolbar .progress-track > span {
+  background: linear-gradient(90deg, #298976, #56922b);
+}
+.button {
+  border-color: #a771c14d;
+  background: #e4c9fa;
+}
+.button.dark {
+  background: linear-gradient(110deg, #6e3089, #aa2877, #4e3f9e);
+  border-color: #71358b;
+  background-size: 200% 100%;
+}
+.button.dark:hover {
+  background: linear-gradient(110deg, #8435a2, #c12681, #4e57b0);
+  background-size: 200% 100%;
+  animation: rainbow 4s ease infinite;
+}
+.button.rainbow {
+  background: linear-gradient(
+    110deg,
+    #b71877,
+    #842dcb,
+    #255bac,
+    #24896b,
+    #a87c1c,
+    #b71877
+  );
+  background-size: 400% 100%;
+  animation: rainbow 8s ease infinite;
+}
+.tag,
+.pill {
+  border-color: #77419326;
+}
+.tag.white {
+  background: #f5c4e8;
+}
+.exercise-sidebar {
+  background: linear-gradient(170deg, #d5b2f4, #a5d7fa);
+  border-color: #ffffff85;
+  box-shadow: 0 8px 28px #6b398415;
+}
+.exercise-nav {
+  background: #f4e0ff80;
+}
+.exercise-nav.selected {
+  background: #efa4d6;
+  border-color: #b85b9a;
+}
+.exercise-nav.solved {
+  background: #b9e99e;
+}
+.exercise-nav small {
+  color: #6c4b77;
+}
+.exercise-panel {
+  background: linear-gradient(150deg, #f4c9e9, #e1ccfb 60%, #c6e3fb);
+  border-color: #ffffff90;
+  box-shadow: 0 10px 30px #6b398418;
+}
+.matrix-problem {
+  border-radius: 22px;
+  background: linear-gradient(100deg, #ecc4f877, #a9ddf677);
+  margin-top: 20px;
+}
+.cat-matrix {
+  filter: drop-shadow(0 6px 0 #943a9b0b);
+}
+.matrix-cells > span {
+  color: #41244f;
+}
+.matrix-cells > input {
+  background: #fff0fa;
+  border-color: #b08ac6;
+}
+.matrix-cells > input.cell-correct {
+  background: #b9edb8;
+}
+.matrix-cells > input.cell-wrong {
+  background: #ffd1de;
+}
+.answer-section {
+  background: #d9b9f366;
+  border-radius: 18px;
+  padding: 18px;
+}
+.solution-box {
+  background: #bcdfefb0;
+  border-color: #829dd9;
+}
+.sidebar-cat .knight-cat {
+  width: 130px;
+  display: block;
+  margin: auto;
+}
+.sidebar-cat p {
+  color: #573869;
+}
+.completion-banner {
+  background: linear-gradient(115deg, #ffd77b, #ffe891, #b8eaaa);
+  border-color: #fff9;
+  box-shadow: 0 8px 25px #8c6c2c15;
+}
+.puzzle-workspace {
+  background: #d2baf6;
+  border-color: #fff9;
+  box-shadow: 0 10px 35px #6b398418;
+}
+.puzzle-toolbar {
+  background: linear-gradient(110deg, #b6e9db, #bbdefb);
+  border-color: #9f82bf35;
+}
+.puzzle-scroll {
+  background: #bdb7e9;
+  background-image: radial-gradient(#745aab44 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.puzzle-side {
+  background: linear-gradient(180deg, #bce8db, #c6d9f5);
+}
+.puzzle-side-note {
+  margin: 20px 0;
+  color: #625178;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.puzzle-status {
+  background: #c3b8ed;
+  color: #513d67;
+}
+.piece-tray {
+  background: linear-gradient(125deg, #d9b0f0, #c7d3f9);
+}
+.tray-piece {
+  background: #e8d3fb;
+  border-color: #9c77bf3b;
+}
+.tray-piece:hover,
+.tray-piece.selected {
+  background: #ffbcdc;
+}
+.tray-piece.selected {
+  border-color: #a6267a;
+  box-shadow: 0 0 0 3px #f28bc660;
+}
+.tray-pagination {
+  color: #654574;
+}
+.panel {
+  background: linear-gradient(145deg, #f2c5e3, #d8c7f8);
+  border-color: #fff8;
+  box-shadow: 0 8px 26px #65428414;
+}
+.photo-panel {
+  background: linear-gradient(145deg, #bceab8, #a8d6f3);
+}
+.admin-tabs {
+  background: #d1abe6;
+}
+.admin-tabs button.active {
+  background: #ffb5dd;
+}
+.progress-card {
+  background: #bddeef;
+  border-color: #b695d6;
+}
+input,
+select,
+textarea {
+  background: #fff0fa;
+  border-color: #a875ba4d;
+}
+input::placeholder,
+textarea::placeholder {
+  color: #87708f;
+}
+label {
+  color: #543662;
+}
+.login-page {
+  background: transparent;
+}
+.login-card {
+  background: linear-gradient(155deg, #f8c2e5, #e0bef7 62%, #bddcf9);
+  border-color: #ffffffa0;
+  box-shadow:
+    0 16px 0 -8px #ab7fc02b,
+    0 23px 65px #69387725;
+}
+.login-card:before {
+  background: #e5ec74ba;
+}
+.login-cat-badge {
+  width: 96px;
+  height: 106px;
+  border-radius: 30px;
+  background: linear-gradient(145deg, #cda1f1, #8bd8e3);
+  overflow: visible;
+}
+.login-cat-badge .knight-cat {
+  width: 100px;
+  height: 108px;
+  transform: translate(-2px, -6px);
+}
+.login-card > .eyebrow {
+  color: #71355e;
+}
+.login-note {
+  color: #6b456f;
+}
+.login-story > p {
+  color: #62466f;
+}
+
+/* A companion with real contextual dialogue rather than generic alert boxes. */
+.knight-cat {
+  width: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 8px 8px #52336b18);
+}
+.knight-body {
+  transform-origin: 130px 240px;
+  animation: knight-breathe 4s ease-in-out infinite;
+}
+.knight-cape {
+  transform-origin: 89px 140px;
+  animation: cape-wave 4.5s ease-in-out infinite;
+}
+.knight-plume {
+  transform-origin: 125px 40px;
+  animation: plume-wave 3.5s ease-in-out infinite;
+}
+.knight-eyes {
+  transform-origin: 130px 112px;
+  animation: blink 7s infinite;
+}
+.knight-sword {
+  transform-origin: 187px 183px;
+  animation: sword-idle 5s ease-in-out infinite;
+}
+.sword-glint {
+  transform-origin: 235px 98px;
+  animation: glint 3s ease-in-out infinite;
+}
+.knight-celebration {
+  opacity: 0;
+  transform-origin: center;
+}
+.mood-celebrate .knight-body {
+  animation: knight-cheer 1.6s ease-in-out 2;
+}
+.mood-celebrate .knight-sword {
+  animation: sword-cheer 1.6s ease-in-out 2;
+}
+.mood-celebrate .knight-celebration {
+  animation: victory-sparks 1.6s ease-in-out 2;
+}
+.mood-thinking .knight-body {
+  animation: knight-think 4s ease-in-out infinite;
+}
+.is-talking .knight-smile {
+  transform-origin: 130px 134px;
+  animation: miau-talk 0.35s ease-in-out infinite alternate;
+}
+.guide-speech {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+}
+.guide-avatar {
+  position: relative;
+  text-align: center;
+}
+.guide-avatar .knight-cat {
+  display: block;
+  height: 132px;
+}
+.guide-avatar > span {
+  display: inline-block;
+  font-size: 9px;
+  color: #573164;
+  font-weight: 800;
+  padding: 5px 8px;
+  background: #ffe77e;
+  border: 1px solid #62358422;
+  border-radius: 20px;
+  margin-top: -3px;
+}
+.guide-bubble {
+  position: relative;
+  min-width: 0;
+  background: linear-gradient(120deg, #ffeb8f, #ffc9df);
+  border: 1px solid #ffffffbb;
+  border-radius: 22px;
+  padding: 20px 24px;
+  box-shadow: 0 8px 25px #69448114;
+}
+.guide-bubble:before {
+  content: "";
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  left: -8px;
+  top: 50%;
+  transform: rotate(45deg);
+  background: #ffeb8f;
+  border-left: 1px solid #ffffffbb;
+  border-bottom: 1px solid #ffffffbb;
+}
+.guide-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.guide-caption > span {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  color: #87532f;
+}
+.guide-voice {
+  border: 1px solid #86418c40;
+  background: #fff6b7;
+  color: #733267;
+  border-radius: 20px;
+  padding: 5px 9px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.guide-voice:hover {
+  background: #ffb7d9;
+}
+.guide-dialogue > strong {
+  display: block;
+  font-family: "Outfit Variable", sans-serif;
+  font-weight: 600;
+  font-size: 21px;
+  letter-spacing: -0.4px;
+  color: #4a2557;
+  line-height: 1.3;
+}
+.guide-dialogue p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #63405d;
+  margin: 8px 0 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.guide-dialogue .guide-detail {
+  color: #73516d;
+  font-size: 12px;
+}
+.guide-thinking {
+  background: linear-gradient(120deg, #c9e5ff, #e0c4ff);
+}
+.guide-thinking:before {
+  background: #c9e5ff;
+}
+.guide-thinking .guide-caption > span {
+  color: #56508c;
+}
+.guide-celebrate {
+  background: linear-gradient(120deg, #b9efaa, #ffe58a, #ffc8de);
+}
+.guide-celebrate:before {
+  background: #b9efaa;
+}
+.guide-encourage {
+  background: linear-gradient(120deg, #ffceec, #e8bcff);
+}
+.guide-encourage:before {
+  background: #ffceec;
+}
+.voice-note {
+  display: block;
+  color: #684b73;
+  line-height: 1.65;
+  margin-top: 10px;
+}
+.welcome-guide {
+  margin: -4px 0 35px;
+}
+.journey-note {
+  margin-top: 35px;
+}
+.math-guide {
+  margin: 24px 0 20px;
+  grid-template-columns: 95px minmax(0, 1fr);
+  gap: 16px;
+}
+.math-guide .guide-avatar .knight-cat {
+  height: 113px;
+}
+.math-guide .guide-bubble {
+  padding: 16px 19px;
+}
+.math-guide .guide-dialogue > strong {
+  font-size: 19px;
+}
+.puzzle-guide {
+  padding: 18px 24px;
+  background: linear-gradient(110deg, #bcdfe8, #c6b2ec);
+  border-top: 1px solid #ffffff70;
+}
+.puzzle-guide .guide-avatar .knight-cat {
+  height: 115px;
+}
+.puzzle-guide .guide-bubble {
+  padding: 16px 21px;
+}
+.toast-guide {
+  width: min(570px, calc(100vw - 30px));
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 9px;
+  filter: drop-shadow(0 8px 15px #49325525);
+  animation: toast-in 0.25s ease-out;
+}
+.toast-guide .guide-avatar .knight-cat {
+  height: 87px;
+}
+.toast-guide .guide-avatar > span {
+  display: none;
+}
+.toast-guide .guide-bubble {
+  padding: 13px 18px;
+  border-radius: 16px;
+}
+.toast-guide .guide-caption {
+  display: none;
+}
+.toast-guide .guide-dialogue > strong {
+  font-size: 15px;
+}
+.toast-guide .guide-dialogue p {
+  font-size: 12px;
+  margin-top: 5px;
+}
+.page-heading {
+  animation: page-arrive 0.5s ease both;
+}
+.exercise-panel,
+.puzzle-workspace {
+  animation: page-arrive 0.5s ease both;
+}
+
+@keyframes aurora-drift {
+  to {
+    transform: translate(12vw, 8vh) rotate(35deg) scale(1.15);
+  }
+}
+@keyframes spark-drift {
+  50% {
+    transform: translate(18px, -28px) rotate(18deg);
+    opacity: 0.5;
+  }
+}
+@keyframes birthday-blob {
+  to {
+    border-radius: 62% 38% 58% 42% / 40% 64% 36% 60%;
+    transform: rotate(7deg);
+  }
+}
+@keyframes card-shine {
+  to {
+    transform: translateX(120%);
+  }
+}
+@keyframes knight-breathe {
+  50% {
+    transform: translateY(-3px) rotate(-1deg);
+  }
+}
+@keyframes cape-wave {
+  50% {
+    transform: skewX(-5deg) rotate(2deg);
+  }
+}
+@keyframes plume-wave {
+  50% {
+    transform: rotate(-9deg);
+  }
+}
+@keyframes sword-idle {
+  50% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes glint {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.6);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.2) rotate(20deg);
+  }
+}
+@keyframes knight-cheer {
+  35% {
+    transform: translateY(-9px) rotate(-3deg);
+  }
+  70% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+@keyframes sword-cheer {
+  40% {
+    transform: rotate(-15deg);
+  }
+}
+@keyframes victory-sparks {
+  25%,
+  75% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+@keyframes knight-think {
+  50% {
+    transform: rotate(-4deg) translateY(-2px);
+  }
+}
+@keyframes miau-talk {
+  to {
+    transform: scaleY(1.5);
+  }
+}
+@keyframes page-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 850px) {
+  .hero {
+    padding: 25px;
+  }
+  .guide-speech {
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 14px;
+  }
+  .guide-avatar .knight-cat {
+    height: 118px;
+  }
+  .guide-bubble {
+    padding: 18px;
+  }
+  .guide-dialogue > strong {
+    font-size: 19px;
+  }
+  .math-guide {
+    grid-template-columns: 95px minmax(0, 1fr);
+  }
+  .toast-guide {
+    grid-template-columns: 78px minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .aurora {
+    filter: blur(35px);
+  }
+  .ambient-spark:nth-of-type(n + 10) {
+    display: none;
+  }
+  .hero {
+    margin-top: 20px;
+    padding: 25px 18px 16px;
+    border-radius: 26px;
+  }
+  .hero h1 {
+    font-size: 64px;
+  }
+  .hero .sticker-yellow {
+    right: 7px;
+  }
+  .hero .sticker-white {
+    left: 4px;
+  }
+  .hero .hero-cat {
+    width: 181px;
+  }
+  .hero .age-art {
+    font-size: 165px;
+    right: 30px;
+  }
+  .hero-chips {
+    font-size: 8px;
+    gap: 8px;
+  }
+  .answer-section {
+    padding: 14px 8px;
+    flex-wrap: wrap;
+  }
+  .answer-section > div:first-child {
+    max-width: none;
+  }
+  .guide-speech {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .guide-avatar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: 9px;
+  }
+  .guide-avatar .knight-cat {
+    width: 74px;
+    height: 84px;
+  }
+  .guide-avatar > span {
+    font-size: 10px;
+    margin: 0;
+    padding: 6px 10px;
+  }
+  .guide-bubble {
+    border-radius: 18px;
+    padding: 17px;
+  }
+  .guide-bubble:before {
+    top: -8px;
+    left: 45px;
+    border-left: 1px solid #ffffffbb;
+    border-top: 1px solid #ffffffbb;
+    border-bottom: 0;
+  }
+  .guide-caption > span {
+    font-size: 7px;
+    letter-spacing: 1.2px;
+  }
+  .guide-dialogue > strong {
+    font-size: 19px;
+  }
+  .guide-dialogue p {
+    font-size: 12px;
+  }
+  .guide-dialogue .guide-detail {
+    font-size: 11px;
+  }
+  .welcome-guide {
+    margin-top: -14px;
+  }
+  .math-guide {
+    margin-top: 16px;
+  }
+  .math-guide .guide-avatar .knight-cat {
+    height: 84px;
+  }
+  .puzzle-guide {
+    padding: 14px;
+  }
+  .puzzle-guide .guide-avatar .knight-cat {
+    height: 84px;
+  }
+  .toast-guide {
+    grid-template-columns: 60px minmax(0, 1fr);
+    gap: 8px;
+  }
+  .toast-guide .guide-avatar {
+    margin: 0;
+  }
+  .toast-guide .guide-avatar .knight-cat {
+    width: 62px;
+    height: 70px;
+  }
+  .toast-guide .guide-bubble:before {
+    top: 50%;
+    left: -8px;
+    border-bottom: 1px solid #ffffffbb;
+    border-top: 0;
+  }
+  .toast-guide .guide-dialogue > strong {
+    font-size: 14px;
+  }
+  .toast-guide .guide-dialogue p {
+    font-size: 11px;
+  }
+  .login-cat-badge {
+    width: 87px;
+    height: 96px;
+  }
+  .login-cat-badge .knight-cat {
+    width: 90px;
+    height: 100px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora {
+    will-change: auto;
+  }
+  .mood-celebrate .knight-celebration {
+    opacity: 1;
+  }
+}

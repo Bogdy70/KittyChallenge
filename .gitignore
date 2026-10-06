@@ -1,0 +1,12 @@
+node_modules/
+dist/
+data/
+config/accounts.json
+.env
+*.log
+.DS_Store
+artifacts/
+config/network.json
+
+config/voice-secrets.json
+config/voice-secrets.json.*.tmp
