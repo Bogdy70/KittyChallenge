@@ -1,0 +1,333 @@
+/* The board never resizes when a drawer opens. Its controls float above it. */
+.focus-guide-panel {
+  display: contents;
+}
+.focus-guide-panel[hidden],
+.puzzle-studio .puzzle-toolbar[hidden],
+.puzzle-studio .piece-tray[hidden],
+.puzzle-studio .puzzle-status[hidden],
+.puzzle-errors[hidden] {
+  display: none !important;
+}
+.puzzle-immersive .puzzle-play-surface {
+  position: relative;
+}
+.puzzle-immersive .puzzle-area,
+.puzzle-immersive .puzzle-area:has(.tray-pagination) {
+  display: block;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+.puzzle-immersive .puzzle-scroll {
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 56px 56px 56px 8px;
+  background:
+    radial-gradient(ellipse at 12% 8%, #bdeedb, transparent 60%),
+    radial-gradient(ellipse at 85% 95%, #e79fce, transparent 60%), #c6c2ee;
+}
+.focus-tabs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 35;
+}
+.focus-tab,
+.focus-exit {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  border: 1px solid #fff8;
+  border-radius: 18px;
+  color: #493355;
+  background: #e8d9ecb8;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 3px 12px #49335518;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+  font: 700 10px var(--font-body, sans-serif);
+}
+.focus-tab:hover,
+.focus-tab[aria-expanded="true"],
+.focus-exit:hover {
+  background: #fff0b8;
+  box-shadow: 0 3px 16px #9d368b36;
+}
+.focus-tab:focus-visible,
+.focus-exit:focus-visible {
+  outline: 3px solid #a22294;
+  outline-offset: 2px;
+}
+.focus-cat-arrow {
+  width: 34px;
+  height: 32px;
+  color: #fff4eb;
+  flex: none;
+}
+.cat-chevron {
+  transform-origin: 22px 31px;
+}
+.cat-chevron-up {
+  transform: rotate(180deg);
+}
+.cat-chevron-left {
+  transform: rotate(90deg);
+}
+.focus-tab-tools {
+  top: max(5px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  padding: 3px 12px 3px 5px;
+  border-radius: 0 0 18px 18px;
+}
+.focus-tab-pieces {
+  right: max(5px, env(safe-area-inset-right));
+  top: 48%;
+  flex-direction: column;
+  padding: 5px 4px;
+  border-radius: 18px 0 0 18px;
+}
+.focus-tab-guide {
+  bottom: max(5px, env(safe-area-inset-bottom));
+  left: max(12px, env(safe-area-inset-left));
+  padding: 3px 12px 3px 5px;
+  border-radius: 18px 18px 0 0;
+}
+.focus-exit {
+  top: max(5px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  border-radius: 50%;
+  background: #e8d9ec99;
+}
+.puzzle-immersive .puzzle-toolbar,
+.puzzle-immersive .piece-tray,
+.puzzle-immersive .focus-guide-panel {
+  position: absolute;
+  z-index: 30;
+  border: 1px solid #fff9;
+  border-radius: 22px;
+  box-shadow: 0 12px 38px #49335535;
+  animation: focus-panel-in 0.18s ease-out;
+  overscroll-behavior: contain;
+}
+.puzzle-immersive .puzzle-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  left: 12px;
+  right: 62px;
+  top: 56px;
+  padding: 12px 16px;
+  max-height: calc(100% - 170px);
+  overflow: auto;
+  background: linear-gradient(125deg, #ffd1edfa, #d5d4fffa, #c7eeddfa);
+}
+.focus-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  flex: none;
+  gap: 10px;
+  padding-bottom: 6px;
+  color: #493355;
+  font-size: 13px;
+}
+.focus-panel-heading .icon-button {
+  min-width: 40px;
+  min-height: 40px;
+}
+.puzzle-immersive .puzzle-toolbar .progress-wrap {
+  flex: 1 1 170px;
+  max-width: none;
+}
+.puzzle-immersive .toolbar-actions {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.puzzle-immersive .piece-tray {
+  top: 56px;
+  right: 56px;
+  bottom: 16px;
+  width: min(320px, calc(100% - 80px));
+  padding: 12px;
+  box-sizing: border-box;
+}
+.puzzle-immersive .piece-tray .section-title p {
+  display: block;
+}
+.puzzle-immersive .piece-tray .tray-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-auto-rows: max-content;
+}
+.puzzle-immersive .piece-tray .tray-piece {
+  touch-action: pan-y;
+}
+.puzzle-immersive .focus-guide-panel {
+  display: block;
+  left: 12px;
+  bottom: 62px;
+  width: min(530px, calc(100% - 80px));
+  max-height: calc(100% - 120px);
+  overflow: auto;
+  background: #f5defbfa;
+}
+.puzzle-immersive .focus-guide-panel > .focus-panel-heading {
+  padding: 6px 12px 0;
+  box-sizing: border-box;
+}
+.puzzle-immersive .puzzle-guide {
+  max-height: none;
+  overflow: visible;
+  border: 0;
+  margin: 0;
+}
+.puzzle-immersive .puzzle-status {
+  position: absolute;
+  left: 12px;
+  right: 62px;
+  bottom: 16px;
+  z-index: 30;
+  border-radius: 15px;
+  background: #f5defbf5;
+  max-height: 70px;
+  overflow: auto;
+}
+.puzzle-immersive .puzzle-errors {
+  position: absolute;
+  bottom: 65px;
+  left: 12px;
+  z-index: 36;
+  width: min(450px, calc(100% - 80px));
+  max-height: 28%;
+  overflow: auto;
+  border-radius: 16px;
+  background: #fce0edf5;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.focus-selected {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 28;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 5px;
+  border: 1px solid #fff9;
+  background: #ffe9b3e8;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px #49335522;
+  max-width: calc(100% - 180px);
+}
+.focus-selected-piece {
+  width: 40px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+}
+.focus-selected-piece .piece-graphic {
+  width: 100%;
+  height: 100%;
+}
+.focus-selected > span {
+  font-size: 10px;
+  color: #493355;
+}
+.focus-selected .icon-button {
+  min-width: 40px;
+  min-height: 44px;
+  flex: none;
+}
+@keyframes focus-panel-in {
+  from {
+    opacity: 0;
+    translate: 0 5px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@media (max-width: 650px) and (orientation: portrait) {
+  .puzzle-immersive .piece-tray {
+    left: 10px;
+    right: 56px;
+    top: auto;
+    bottom: 62px;
+    width: auto;
+    height: min(420px, calc(100% - 125px));
+  }
+  .puzzle-immersive .piece-tray .section-title {
+    display: flex;
+  }
+  .puzzle-immersive .piece-tray .tray-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-flow: row;
+  }
+  .puzzle-immersive .piece-tray .tray-selection {
+    min-height: 35px;
+  }
+  .puzzle-immersive .puzzle-toolbar {
+    left: 10px;
+    gap: 8px;
+  }
+  .puzzle-immersive .tool-label {
+    display: inline;
+    max-width: 120px;
+  }
+  .puzzle-immersive .focus-guide-panel {
+    left: 10px;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .puzzle-immersive .piece-tray {
+    top: 10px;
+    bottom: 10px;
+    width: 270px;
+  }
+  .puzzle-immersive .piece-tray .section-title p {
+    display: none;
+  }
+  .puzzle-immersive .puzzle-toolbar {
+    max-height: calc(100% - 130px);
+  }
+  .puzzle-immersive .focus-guide-panel {
+    max-height: calc(100% - 76px);
+    bottom: 56px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .puzzle-immersive .puzzle-toolbar,
+  .puzzle-immersive .piece-tray,
+  .puzzle-immersive .focus-guide-panel {
+    animation: none;
+  }
+  .focus-tab,
+  .focus-exit {
+    transition: none;
+  }
+}
+
+.focus-tab > span {
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

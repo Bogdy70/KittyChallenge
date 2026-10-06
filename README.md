@@ -77,12 +77,15 @@ Administratorul poate testa oricare provocare, în orice ordine. Blocarea este v
 - Zoom 50–300%, model suprapus, indiciu pentru piesa selectată și amestecarea cutiei. Dacă locul sugerat este în afara zonei vizibile la zoom, indiciul deplasează tabla spre el. **Potrivește pe ecran** readuce întreaga tablă în zona vizibilă.
 - Tabla are scroll propriu; cutia cu piese rămâne alături pe desktop și landscape, iar pe telefonul ținut vertical stă în partea de jos. Căutarea și așezarea pieselor nu mai necesită alternarea între zone îndepărtate ale paginii.
 - **Ecran complet** păstrează numai tabla, piesele și comenzile. Poți afișa ghidul la cerere și folosi **Ascultă / Oprește**, inclusiv playerul de rezervă pe telefon. Ieși cu butonul ✕ sau Escape; progresul și selecția sunt păstrate. Există și un mod care ocupă fereastra când browserul nu permite Fullscreen API.
+- **Doar puzzle-ul** deschide un fullscreen complet: tabla ocupă întregul spațiu disponibil, păstrând proporțiile fotografiei. Taburile-pisicuță **Comenzi**, **Piese** și **Ghid** deschid panouri flotante; apasă din nou tabul sau ✕ ca să le retragi. Cutia se închide după alegerea unei piese sau când începi să o tragi pe tablă. Miniatura de jos păstrează piesa aleasă la vedere. Sortarea, filtrul categoriilor, indiciile și vocea rămân disponibile. Pentru panouri fixe, alege **Fullscreen cu panouri fixe** din Comenzi. Butonul ✕ din colț te scoate din fullscreen; Escape retrage panoul în modul de rezervă, iar în fullscreen nativ poate ieși direct, conform browserului.
 - Pe telefon, aplicația încearcă orientarea landscape după intrarea în fullscreen. [Blocarea orientării depinde de browser și dispozitiv](https://developer.mozilla.org/en-US/docs/Web/API/ScreenOrientation/lock); dacă nu este permisă, poți roti manual telefonul și interfața se adaptează. Selectează o piesă și atinge locul ei, sau trage în direcția tablei. Cutia se poate derula independent de tablă.
 - Cutie paginată cu 24 de piese: varianta de 500 nu afișează toate miniaturile simultan.
 - Salvare automată pe server; progresul revine după reîncărcare sau conectare de pe alt dispozitiv. Dacă salvarea eșuează, un mesaj oferă reîncercarea.
 - Fotografiile se optimizează în browser la maximum 2000 px și sunt servite numai utilizatorilor conectați. Originalul poate avea maximum 20 MB; serverul acceptă până la 8 MB pentru fișierul optimizat.
 
 [Fullscreen pe desktop](docs/puzzle-fullscreen-desktop.png) · [Pe telefon](docs/puzzle-fullscreen-phone.png) · [Landscape](docs/puzzle-fullscreen-landscape.png)
+
+[Doar puzzle-ul pe desktop](docs/puzzle-focus-desktop.png) · [Cutia retractabilă pe telefon](docs/puzzle-focus-phone-tray.png) · [Modul complet în landscape](docs/puzzle-focus-landscape.png)
 
 ## Sortează piesele înainte de joacă
 
@@ -141,7 +144,7 @@ Cheia salvată în atelier se păstrează local, în clar, în **config/voice-se
 
 ## Textele, indiciile și replicile
 
-Deschide **Atelier → Textele**. Catalogul are **308 texte editabile**: autentificare, aniversare, navigare, replicile cavalerului, reacții, butoane, titluri, indicii și explicații. Caută un cuvânt sau alege o categorie. Previzualizarea folosește valori de exemplu.
+Deschide **Atelier → Textele**. Catalogul are **315 texte editabile**: autentificare, aniversare, navigare, replicile cavalerului, reacții, butoane, titluri, indicii și explicații. Caută un cuvânt sau alege o categorie. Previzualizarea folosește valori de exemplu.
 
 - Schimbă numele cavalerului; referințele cu `{guide}` se actualizează automat.
 - Folosește variabilele afișate sub câmp: `{recipient}`, `{scalar}`, `{determinant}`, `{row}`, `{col}` și celelalte variabile specifice acelui text.
@@ -176,6 +179,7 @@ frontend/src/
   styles.css             componente de bază și responsive
   celebration.css        paleta aniversară, ghid și animații
   puzzle.css             tablă cu dock persistent, fullscreen și landscape
+  puzzle-focus.css       fullscreen complet cu taburi-pisicuță și panouri flotante
   puzzle-sort.css        sortare responsive și vocea companionului fullscreen
   voice.css              atelierul audio și playerul mobil
 server/
@@ -285,3 +289,5 @@ GitHub Actions rulează testele Node, compilarea și scenariile browser în Chro
 - Nu există cronometru sau penalizări. Pentru invitată, matricile deblochează puzzle-ul.
 
 Referința inițială de arhitectură și stil este păstrată în [ORDERLY_BASELINE.md](ORDERLY_BASELINE.md).
+
+Fullscreen-ul complet este verificat pentru tabla pe întregul ecran, panouri flotante, selecție și drag, indicii, voce, sortare, revenirea la panouri fixe, telefon portrait/landscape și fallback fără Fullscreen API.

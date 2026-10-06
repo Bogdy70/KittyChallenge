@@ -1,4 +1,5 @@
 import PuzzleSorter from "./PuzzleSorter";
+import PuzzleFocusTabs from "./PuzzleFocusTabs";
 import { pieceSides } from "../../shared/puzzle-sorting.mjs";
 import { useMessages } from "./Messages";
 import React, {
@@ -90,6 +91,8 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
     [zoom, setZoom] = useState(1),
     [preview, setPreview] = useState(false),
     [focusMode, setFocusMode] = useState(false),
+    [immersive, setImmersive] = useState(false),
+    [drawer, setDrawer] = useState(null),
     [showGuide, setShowGuide] = useState(false),
     [sortingOpen, setSortingOpen] = useState(false),
     [category, setCategory] = useState("all"),
@@ -126,7 +129,9 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
     sortSequence = useRef(0),
     sortRevision = useRef(0),
     sortBlocked = useRef(false),
-    sortButton = useRef(null);
+    sortButton = useRef(null),
+    focusUi = useRef({});
+  focusUi.current = { immersive, drawer, sortingOpen };
   const prefix = useId().replaceAll(":", "");
   async function load() {
     try {
@@ -164,8 +169,8 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
         Math.max(
           80,
           Math.min(
-            viewport.clientWidth - 32,
-            (viewport.clientHeight - 32) * boardRatio,
+            viewport.clientWidth - (immersive ? 64 : 32),
+            (viewport.clientHeight - (immersive ? 112 : 32)) * boardRatio,
           ),
         ),
       );
@@ -173,7 +178,7 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
     observer.observe(viewport);
     fit();
     return () => observer.disconnect();
-  }, [puzzle?.version, boardRatio]);
+  }, [puzzle?.version, boardRatio, immersive]);
   function persistSorting(next) {
     const seq = ++sortSequence.current;
     setSortSaving(true);
@@ -249,9 +254,53 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
   }
   function closeSorting() {
     setSortingOpen(false);
+    if (focusUi.current.immersive) setDrawer("pieces");
     requestAnimationFrame(() =>
-      sortButton.current?.focus({ preventScroll: true }),
+      (focusUi.current.immersive
+        ? workspaceRef.current?.querySelector("[data-focus-tab=pieces]")
+        : sortButton.current
+      )?.focus({ preventScroll: true }),
     );
+  }
+  function closeDrawer() {
+    const kind = focusUi.current.drawer;
+    setDrawer(null);
+    requestAnimationFrame(() =>
+      workspaceRef.current
+        ?.querySelector('[data-focus-tab="' + kind + '"]')
+        ?.focus({ preventScroll: true }),
+    );
+  }
+  useEffect(() => {
+    if (!immersive || !drawer || sortingOpen) return;
+    workspaceRef.current
+      ?.querySelector('[id="' + prefix + "-" + drawer + '"] button')
+      ?.focus({ preventScroll: true });
+  }, [immersive, drawer, sortingOpen]);
+  function restoreFocusPanels() {
+    setImmersive(false);
+    setDrawer(null);
+    requestAnimationFrame(() =>
+      workspaceRef.current?.focus({ preventScroll: true }),
+    );
+  }
+  function toggleDrawer(kind) {
+    setDrawer((old) => (old === kind ? null : kind));
+  }
+  function pickPiece(index) {
+    setSelected(index);
+    setHint(false);
+    setGuide({
+      title: t("puzzle.selected.title"),
+      message: t("puzzle.selected.message"),
+      mood: "thinking",
+    });
+    if (immersive) {
+      setDrawer(null);
+      requestAnimationFrame(() =>
+        viewportRef.current?.focus({ preventScroll: true }),
+      );
+    }
   }
   function revealSelected() {
     const viewport = viewportRef.current;
@@ -295,6 +344,8 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
   async function exitFocus() {
     focusActive.current = false;
     setFocusMode(false);
+    setImmersive(false);
+    setDrawer(null);
     unlockOrientation();
     if (document.fullscreenElement === workspaceRef.current) {
       try {
@@ -302,13 +353,16 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
       } catch {}
     }
   }
-  function enterFocus() {
+  function enterFocus(completeFocus = false) {
     focusActive.current = true;
     setFocusMode(true);
+    setImmersive(completeFocus);
+    setDrawer(null);
     setShowGuide(false);
     setZoom(1);
     viewportRef.current?.scrollTo(0, 0);
     const element = workspaceRef.current;
+    if (document.fullscreenElement === element) return;
     // Request during the click, while the browser still has user activation.
     try {
       element
@@ -345,6 +399,8 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
         nativeFullscreen.current = false;
         focusActive.current = false;
         setFocusMode(false);
+        setImmersive(false);
+        setDrawer(null);
         unlockOrientation();
       }
     };
@@ -374,7 +430,10 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
     function keys(event) {
       if (event.key === "Escape") {
         event.preventDefault();
-        exitFocus();
+        if (focusUi.current.sortingOpen) closeSorting();
+        else if (focusUi.current.immersive && focusUi.current.drawer)
+          closeDrawer();
+        else exitFocus();
       }
       if (event.key !== "Tab") return;
       const controls = [
@@ -527,6 +586,21 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
   useEffect(() => {
     if (!drag) return;
     function move(e) {
+      const tray = workspaceRef.current
+        ?.querySelector(".piece-tray")
+        ?.getBoundingClientRect();
+      const outsideTray =
+        tray &&
+        (e.clientX < tray.left ||
+          e.clientX > tray.right ||
+          e.clientY < tray.top ||
+          e.clientY > tray.bottom);
+      if (
+        immersive &&
+        Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) > 6 &&
+        (drag.pointerType !== "touch" || outsideTray)
+      )
+        setDrawer(null);
       setDrag((d) =>
         d
           ? {
@@ -634,12 +708,20 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
       </div>
       <section
         ref={workspaceRef}
-        className={`puzzle-workspace puzzle-studio ${focusMode ? "puzzle-focus" : ""}`}
+        className={`puzzle-workspace puzzle-studio ${focusMode ? "puzzle-focus" : ""} ${immersive ? "puzzle-immersive" : ""}`}
         tabIndex={-1}
         role={focusMode ? "dialog" : "region"}
         aria-modal={focusMode || undefined}
         aria-label={t("puzzle.tabla-puzzle-ului")}
       >
+        {immersive && !sortingOpen && (
+          <PuzzleFocusTabs
+            drawer={drawer}
+            onToggle={toggleDrawer}
+            onExit={exitFocus}
+            idPrefix={prefix}
+          />
+        )}
         {sortingOpen && (
           <PuzzleSorter
             puzzle={puzzle}
@@ -662,7 +744,23 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
           hidden={sortingOpen}
           inert={sortingOpen ? "" : undefined}
         >
-          <div className="puzzle-toolbar">
+          <div
+            className="puzzle-toolbar"
+            id={prefix + "-tools"}
+            hidden={immersive && drawer !== "tools"}
+          >
+            {immersive && (
+              <div className="focus-panel-heading">
+                <strong>{t("puzzle.focus.tools")}</strong>
+                <button
+                  className="icon-button"
+                  aria-label={t("puzzle.focus.close")}
+                  onClick={closeDrawer}
+                >
+                  <Icon name="close" size={18} />
+                </button>
+              </div>
+            )}
             <Progress
               value={puzzle.placed.length}
               max={puzzle.count}
@@ -752,14 +850,34 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
               <button
                 className="button small guide-toggle"
                 aria-label={
-                  showGuide ? t("puzzle.guide.hide") : t("puzzle.guide.show")
+                  (immersive ? drawer === "guide" : showGuide)
+                    ? t("puzzle.guide.hide")
+                    : t("puzzle.guide.show")
                 }
-                aria-pressed={showGuide}
-                onClick={() => setShowGuide((v) => !v)}
+                aria-pressed={immersive ? drawer === "guide" : showGuide}
+                onClick={() =>
+                  immersive ? toggleDrawer("guide") : setShowGuide((v) => !v)
+                }
               >
                 <Icon name="paw" size={17} />
                 <span className="tool-label">
-                  {showGuide ? t("puzzle.guide.hide") : t("puzzle.guide.show")}
+                  {(immersive ? drawer === "guide" : showGuide)
+                    ? t("puzzle.guide.hide")
+                    : t("puzzle.guide.show")}
+                </span>
+              </button>
+              <button
+                className="button small lavender"
+                aria-label={t(
+                  immersive ? "puzzle.focus.restore" : "puzzle.focus.enter",
+                )}
+                onClick={() =>
+                  immersive ? restoreFocusPanels() : enterFocus(true)
+                }
+              >
+                <Icon name="eye" size={17} />
+                <span className="tool-label">
+                  {t(immersive ? "puzzle.focus.restore" : "puzzle.focus.enter")}
                 </span>
               </button>
               <button
@@ -769,7 +887,7 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
                     ? t("puzzle.fullscreen.exit")
                     : t("puzzle.fullscreen.enter")
                 }
-                onClick={focusMode ? exitFocus : enterFocus}
+                onClick={focusMode ? exitFocus : () => enterFocus()}
               >
                 <Icon name={focusMode ? "close" : "expand"} size={17} />
                 <span className="tool-label">
@@ -780,27 +898,46 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
               </button>
             </div>
           </div>
-          {focusMode && (
+          {focusMode && !immersive && (
             <p className="orientation-tip">{t("puzzle.fullscreen.rotate")}</p>
           )}
-          {!sortingOpen && (!focusMode || showGuide) && (
-            <GuideSpeech
-              className="puzzle-guide"
-              mood={complete ? "celebrate" : guide.mood}
-              title={
-                complete
-                  ? t("puzzle.misiune-indeplinita-sabia-sus")
-                  : guide.title
-              }
-              message={
-                complete
-                  ? t(
-                      "puzzle.ai-pus-ultima-piesa-aceasta-poveste-este-doar-pentru-tine-la-mult",
-                    )
-                  : guide.message
-              }
-            />
-          )}
+          <div
+            className="focus-guide-panel"
+            id={prefix + "-guide"}
+            hidden={immersive && drawer !== "guide"}
+          >
+            {immersive && drawer === "guide" && (
+              <div className="focus-panel-heading">
+                <strong>{t("puzzle.focus.guide")}</strong>
+                <button
+                  className="icon-button"
+                  aria-label={t("puzzle.focus.close")}
+                  onClick={closeDrawer}
+                >
+                  <Icon name="close" size={18} />
+                </button>
+              </div>
+            )}
+            {!sortingOpen &&
+              (immersive ? drawer === "guide" : !focusMode || showGuide) && (
+                <GuideSpeech
+                  className="puzzle-guide"
+                  mood={complete ? "celebrate" : guide.mood}
+                  title={
+                    complete
+                      ? t("puzzle.misiune-indeplinita-sabia-sus")
+                      : guide.title
+                  }
+                  message={
+                    complete
+                      ? t(
+                          "puzzle.ai-pus-ultima-piesa-aceasta-poveste-este-doar-pentru-tine-la-mult",
+                        )
+                      : guide.message
+                  }
+                />
+              )}
+          </div>
           <div className="puzzle-area">
             <div
               className="puzzle-scroll"
@@ -935,8 +1072,22 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
             </div>
             <aside
               className="piece-tray"
+              id={prefix + "-pieces"}
+              hidden={immersive && drawer !== "pieces"}
               aria-label={t("puzzle.cutia-cu-piese")}
             >
+              {immersive && (
+                <div className="focus-panel-heading">
+                  <strong>{t("puzzle.focus.pieces")}</strong>
+                  <button
+                    className="icon-button"
+                    aria-label={t("puzzle.focus.close")}
+                    onClick={closeDrawer}
+                  >
+                    <Icon name="close" size={18} />
+                  </button>
+                </div>
+              )}
               <div className="section-title">
                 <div>
                   <h3>
@@ -1037,21 +1188,14 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
                         value1: i + 1,
                       })}
                       aria-pressed={selected === i}
-                      onClick={() => {
-                        setSelected(i);
-                        setHint(false);
-                        setGuide({
-                          title: t("puzzle.selected.title"),
-                          message: t("puzzle.selected.message"),
-                          mood: "thinking",
-                        });
-                      }}
+                      onClick={() => pickPiece(i)}
                       onPointerDown={(e) => {
                         if (e.button !== 0) return;
                         setSelected(i);
                         setHint(false);
                         setDrag({
                           index: i,
+                          pointerType: e.pointerType,
                           x: e.clientX,
                           y: e.clientY,
                           startX: e.clientX,
@@ -1098,7 +1242,47 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
               )}
             </aside>
           </div>
-          <div className="puzzle-status" role="status">
+          {immersive &&
+            selected !== null &&
+            drawer !== "pieces" &&
+            !drag?.moved && (
+              <div className="focus-selected" role="status">
+                <button
+                  className="focus-selected-piece"
+                  aria-label={t("puzzle.focus.selected")}
+                  onClick={() => toggleDrawer("pieces")}
+                >
+                  <Piece
+                    index={selected}
+                    puzzle={puzzle}
+                    idPrefix={prefix + "-focus-selected"}
+                  />
+                </button>
+                {hint && (
+                  <span>
+                    {t("puzzle.hint.position", {
+                      row: Math.floor(selected / puzzle.cols) + 1,
+                      col: (selected % puzzle.cols) + 1,
+                    })}
+                  </span>
+                )}
+                <button
+                  className="icon-button"
+                  aria-label={t("puzzle.selected.clear")}
+                  onClick={() => {
+                    setSelected(null);
+                    setHint(false);
+                  }}
+                >
+                  <Icon name="close" size={16} />
+                </button>
+              </div>
+            )}
+          <div
+            className="puzzle-status"
+            role="status"
+            hidden={immersive && drawer !== "tools"}
+          >
             <span>
               <span className={`live-dot ${saving ? "saving" : ""}`} />
               {saving
@@ -1114,31 +1298,33 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
               {" " + t("puzzle.de-la-inceput")}
             </button>
           </div>
-          <ErrorBox>{error}</ErrorBox>
-          {error && (
-            <button
-              className="button"
-              disabled={saving}
-              onClick={() => persist(puzzleRef.current)}
-            >
-              {t("puzzle.reincearca-salvarea")}
-            </button>
-          )}
+          <div className="puzzle-errors" hidden={!error && !sortError}>
+            <ErrorBox>{error}</ErrorBox>
+            {error && (
+              <button
+                className="button"
+                disabled={saving}
+                onClick={() => persist(puzzleRef.current)}
+              >
+                {t("puzzle.reincearca-salvarea")}
+              </button>
+            )}
 
-          <ErrorBox>{sortError}</ErrorBox>
-          {sortError && (
-            <button
-              className="button small"
-              disabled={sortSaving}
-              onClick={
-                sortConflict
-                  ? reloadSorting
-                  : () => persistSorting(puzzleRef.current)
-              }
-            >
-              {t(sortConflict ? "sort.reload" : "sort.retry")}
-            </button>
-          )}
+            <ErrorBox>{sortError}</ErrorBox>
+            {sortError && (
+              <button
+                className="button small"
+                disabled={sortSaving}
+                onClick={
+                  sortConflict
+                    ? reloadSorting
+                    : () => persistSorting(puzzleRef.current)
+                }
+              >
+                {t(sortConflict ? "sort.reload" : "sort.retry")}
+              </button>
+            )}
+          </div>
           {drag?.moved && (
             <div
               className="drag-piece"
