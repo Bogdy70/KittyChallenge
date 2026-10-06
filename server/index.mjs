@@ -1,3 +1,4 @@
+import { defaultSorting, validateSorting } from "../shared/puzzle-sorting.mjs";
 import { createVoiceService } from "./voice.mjs";
 import { renderMessage, validateMessages } from "../shared/messages.mjs";
 import { readNetwork, addressUrl } from "./network.mjs";
@@ -92,7 +93,8 @@ export function createApp({
  CREATE TABLE IF NOT EXISTS exercises(id TEXT PRIMARY KEY,value TEXT NOT NULL,created INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS runs(user_id TEXT PRIMARY KEY REFERENCES users(id),value TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS challenge_unlocks(user_id TEXT PRIMARY KEY REFERENCES users(id),unlocked INTEGER NOT NULL);
- CREATE TABLE IF NOT EXISTS puzzle_progress(user_id TEXT NOT NULL REFERENCES users(id),version TEXT NOT NULL,placed TEXT NOT NULL,PRIMARY KEY(user_id,version));`);
+ CREATE TABLE IF NOT EXISTS puzzle_progress(user_id TEXT NOT NULL REFERENCES users(id),version TEXT NOT NULL,placed TEXT NOT NULL,PRIMARY KEY(user_id,version));
+ CREATE TABLE IF NOT EXISTS puzzle_sorting(user_id TEXT NOT NULL REFERENCES users(id),version TEXT NOT NULL,value TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(user_id,version));`);
   const accounts = loadAccounts(accountsPath);
   db.exec("BEGIN");
   try {
@@ -220,6 +222,19 @@ export function createApp({
       return true;
     }
     return false;
+  }
+  function readSorting(userId, version) {
+    const row = db
+      .prepare(
+        "SELECT value,revision FROM puzzle_sorting WHERE user_id=? AND version=?",
+      )
+      .get(userId, version);
+    return {
+      sorting: row
+        ? JSON.parse(row.value)
+        : defaultSorting((key) => renderMessage(settings().messages, key)),
+      sortingRevision: row?.revision || 0,
+    };
   }
   const voice = createVoiceService(db, {
     dataDir,
@@ -469,7 +484,31 @@ export function createApp({
           ...p,
           ...gridFor(p.count, p.width / p.height),
           placed: row ? JSON.parse(row.placed) : [],
+          ...readSorting(user.id, p.version),
         });
+      }
+      if (path === "/api/puzzle/sorting" && method === "PUT") {
+        const body = await jsonBody(req),
+          p = settings().puzzle;
+        if (body.version !== p.version)
+          throw fail(
+            409,
+            "Puzzle-ul a fost schimbat. Reîncarcă pentru fotografia nouă.",
+          );
+        const sorting = validateSorting(body.sorting, p.count);
+        if (!Number.isSafeInteger(body.revision) || body.revision < 0)
+          throw fail(400, "Revizia sortării nu este validă.");
+        const current = readSorting(user.id, p.version);
+        if (body.revision !== current.sortingRevision)
+          throw fail(
+            409,
+            "Sortarea a fost modificată într-o altă fereastră. Reîncarcă sortarea înainte de a continua.",
+          );
+        const revision = body.revision + 1;
+        db.prepare(
+          "INSERT INTO puzzle_sorting VALUES(?,?,?,?) ON CONFLICT(user_id,version) DO UPDATE SET value=excluded.value,revision=excluded.revision",
+        ).run(user.id, p.version, JSON.stringify(sorting), revision);
+        return json(res, 200, { sorting, revision });
       }
       if (path === "/api/puzzle/progress" && method === "PUT") {
         const body = await jsonBody(req);

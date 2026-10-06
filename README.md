@@ -76,13 +76,28 @@ Administratorul poate testa oricare provocare, în orice ordine. Blocarea este v
 - Cu tastatura: Tab / Enter pentru piesă și locul de pe tablă.
 - Zoom 50–300%, model suprapus, indiciu pentru piesa selectată și amestecarea cutiei. Dacă locul sugerat este în afara zonei vizibile la zoom, indiciul deplasează tabla spre el. **Potrivește pe ecran** readuce întreaga tablă în zona vizibilă.
 - Tabla are scroll propriu; cutia cu piese rămâne alături pe desktop și landscape, iar pe telefonul ținut vertical stă în partea de jos. Căutarea și așezarea pieselor nu mai necesită alternarea între zone îndepărtate ale paginii.
-- **Ecran complet** păstrează numai tabla, piesele și comenzile. Poți afișa ghidul la cerere. Ieși cu butonul ✕ sau Escape; progresul și selecția sunt păstrate. Există și un mod care ocupă fereastra când browserul nu permite Fullscreen API.
+- **Ecran complet** păstrează numai tabla, piesele și comenzile. Poți afișa ghidul la cerere și folosi **Ascultă / Oprește**, inclusiv playerul de rezervă pe telefon. Ieși cu butonul ✕ sau Escape; progresul și selecția sunt păstrate. Există și un mod care ocupă fereastra când browserul nu permite Fullscreen API.
 - Pe telefon, aplicația încearcă orientarea landscape după intrarea în fullscreen. [Blocarea orientării depinde de browser și dispozitiv](https://developer.mozilla.org/en-US/docs/Web/API/ScreenOrientation/lock); dacă nu este permisă, poți roti manual telefonul și interfața se adaptează. Selectează o piesă și atinge locul ei, sau trage în direcția tablei. Cutia se poate derula independent de tablă.
 - Cutie paginată cu 24 de piese: varianta de 500 nu afișează toate miniaturile simultan.
 - Salvare automată pe server; progresul revine după reîncărcare sau conectare de pe alt dispozitiv. Dacă salvarea eșuează, un mesaj oferă reîncercarea.
 - Fotografiile se optimizează în browser la maximum 2000 px și sunt servite numai utilizatorilor conectați. Originalul poate avea maximum 20 MB; serverul acceptă până la 8 MB pentru fișierul optimizat.
 
 [Fullscreen pe desktop](docs/puzzle-fullscreen-desktop.png) · [Pe telefon](docs/puzzle-fullscreen-phone.png) · [Landscape](docs/puzzle-fullscreen-landscape.png)
+
+## Sortează piesele înainte de joacă
+
+În pagina Puzzle, apasă **Sortează piesele** sau pictograma de lângă filtrul cutiei. Interfața este disponibilă ambelor conturi, în modul obișnuit și în fullscreen. Contul invitatei are acces după deblocarea puzzle-ului prin matrici.
+
+- Începi cu **Colțuri**, **Margini** și **Interior**. Selectează una sau mai multe piese și apasă **Mută aici** în categoria dorită. Pe calculator, poți trage o piesă sau selecția întreagă într-o cutie. Pe telefon, atinge piesele și apoi butonul de mutare.
+- Creează categorii personale, de exemplu „Cer”, „Blăniță” sau „Flori”, cu un nume și o culoare. Le poți redenumi sau șterge; piesele unei categorii șterse devin nesortate. Sunt permise până la **24 de categorii**, cu nume distincte de maximum 40 de caractere.
+- **După contur** separă colțurile, marginile și piesele interioare după orientarea proeminențelor. Nu așază piesele pe tablă.
+- **După culoare** analizează local în browser fotografia și grupează piesele după culoarea dominantă, inclusiv categorii pentru culori deschise, închise și mixte. Rezultatul este orientativ; poți muta manual orice piesă. Fotografia nu este trimisă unui serviciu de analiză.
+- Sortarea automată cere confirmare dacă înlocuiește o organizare existentă. **Anulează ultima sortare** permite întoarcerea până la 20 de modificări din sesiunea curentă a paginii, inclusiv mutări și editări de categorii. **Scoate din categorii** golește asocierile și păstrează cutiile și piesele puse pe tablă.
+- **Înapoi la puzzle** păstrează sortarea. Filtrul din cutia cu piese permite alegerea unei categorii, a pieselor nesortate sau a tuturor pieselor rămase. Piesele așezate dispar automat din liste și din numărul categoriei.
+
+Organizarea este salvată automat în SQLite **separat pentru fiecare cont și versiune de puzzle** și revine la reîncărcare sau pe alt dispozitiv. „De la început” resetează așezarea pe tablă, păstrând cutiile și asocierile. O fotografie nouă sau alt număr de piese începe cu o organizare nouă. Dacă două ferestre ale aceluiași cont încearcă să salveze sortări diferite, apare **Reîncarcă sortarea**, pentru a evita suprascrierea fără avertizare. O eroare de conexiune oferă reîncercarea salvării.
+
+[Sortare pe desktop](docs/puzzle-sorting-desktop.png) · [Pe telefon](docs/puzzle-sorting-phone.png) · [Companionul cu voce în fullscreen](docs/puzzle-companion-voice.png)
 
 ## Cavalerul Miau
 
@@ -126,7 +141,7 @@ Cheia salvată în atelier se păstrează local, în clar, în **config/voice-se
 
 ## Textele, indiciile și replicile
 
-Deschide **Atelier → Textele**. Catalogul are **242 texte editabile**: autentificare, aniversare, navigare, replicile cavalerului, reacții, butoane, titluri, indicii și explicații. Caută un cuvânt sau alege o categorie. Previzualizarea folosește valori de exemplu.
+Deschide **Atelier → Textele**. Catalogul are **308 texte editabile**: autentificare, aniversare, navigare, replicile cavalerului, reacții, butoane, titluri, indicii și explicații. Caută un cuvânt sau alege o categorie. Previzualizarea folosește valori de exemplu.
 
 - Schimbă numele cavalerului; referințele cu `{guide}` se actualizează automat.
 - Folosește variabilele afișate sub câmp: `{recipient}`, `{scalar}`, `{determinant}`, `{row}`, `{col}` și celelalte variabile specifice acelui text.
@@ -154,12 +169,14 @@ frontend/src/
   Voice.jsx              redare, cache audio API, fallback și vocea browserului
   VoiceAdmin.jsx         configurare voce, upload și bibliotecă audio
   MathChallenge.jsx      interfața exercițiilor
-  PuzzleChallenge.jsx    puzzle, gesturi, zoom, salvare
+  PuzzleChallenge.jsx    puzzle, gesturi, zoom, salvare și filtre de categorii
+  PuzzleSorter.jsx       cutii personale, selecție multiplă, drag și culori
   Admin.jsx              configurare, fotografii, exerciții, progres
   api.js                 client HTTP și sesiune expirată
   styles.css             componente de bază și responsive
   celebration.css        paleta aniversară, ghid și animații
   puzzle.css             tablă cu dock persistent, fullscreen și landscape
+  puzzle-sort.css        sortare responsive și vocea companionului fullscreen
   voice.css              atelierul audio și playerul mobil
 server/
   index.mjs              API, sesiuni, SQLite și fișiere statice
@@ -169,6 +186,7 @@ server/
   network.mjs            configurație de adresă și detectare Tailscale
   voice.mjs              înregistrări, ElevenLabs, cache și audio privat
 shared/messages.mjs      texte implicite, variabile și validare comună
+shared/puzzle-sorting.mjs  categorii, validare, contururi și culori dominante
 public/                  ilustrații SVG originale
 tests/                   teste matematice și integrare API
 scripts/browser-check.mjs  verificări reale în browser, izolate de datele aplicației
@@ -178,7 +196,7 @@ Sesiunile folosesc cookie-uri HttpOnly, SameSite=Strict, cu expirare la 7 zile. 
 
 Fișiere persistente:
 
-- `data/kitty.sqlite` — conturi, sesiuni, setări, exerciții și progres.
+- `data/kitty.sqlite` — conturi, sesiuni, setări, exerciții, progres și sortarea puzzle-ului.
 - `data/uploads/` — fotografii încărcate; imaginile vechi rămân păstrate local.
 - `data/audio/` — înregistrări audio și replici generate.
 - `config/accounts.json` — configurarea locală a celor două conturi.
@@ -253,6 +271,8 @@ Testele browser folosesc Edge instalat în Windows. Pe Linux/macOS rulează îna
 Sunt testate operațiile și fracțiile, 1.500 de seturi generate, identitatea `A × A⁻¹ = I`, validarea, permisiunile, conturile, sesiunile, schimbarea parolei, upload-ul privat și persistența. Testele în browser verifică desktop/mobil, rezolvarea matricelor, puzzle prin click / drag / tastatură, administrarea, redarea a 500 de piese, editorul de texte, export/import, personalizarea vizibilă după login și pe telefon, ordinea provocărilor, fullscreen nativ, păstrarea cutiei la zoom și scroll, selecția touch, layout-ul landscape și fallback-ul fără fullscreen. Testele API includ deblocarea permanentă, exercițiile personalizate și compatibilitatea cu seturile terminate în versiunea anterioară.
 
 Testele audio verifică upload și înlocuire, potrivirea textului, fișiere private și Range/HEAD, persistență, limite, cache comun, deduplicarea generărilor, cheia de mediu și erori fără divulgarea secretelor. În browser sunt verificate atelierul pe desktop și telefon, redarea WAV, generarea/cache-ul, înregistrarea unei replici generate, fallback-ul cu player după blocarea autoplay și oprirea la navigare. ElevenLabs este simulat în teste: nu se folosesc chei reale, nu se consumă credite și nu s-a făcut o probă cu serviciul real. Pentru o probă reală, configurează cheia și vocea în atelier.
+
+Sortarea este verificată pentru limite și validare, contururi complementare, culori dominante, accesul ambelor roluri, deblocare, separarea conturilor și a versiunilor, persistență și conflicte între ferestre. Browserul verifică vocea ghidului fullscreen pe desktop/telefon, selecția multiplă, drag, cutii personalizate, redenumire/ștergere, sortare după contur și culoare, anulare, filtre, reîncărcare și layout-urile portrait/landscape.
 
 GitHub Actions rulează testele Node, compilarea și scenariile browser în Chromium. La eșec, capturile sunt disponibile ca artefact al rulării. `npm run format` formatează sursele cu Prettier.
 

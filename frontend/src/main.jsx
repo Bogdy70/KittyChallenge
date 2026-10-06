@@ -13,3 +13,5 @@ import "./editor.css";
 import "./puzzle.css";
 
 import "./voice.css";
+
+import "./puzzle-sort.css";

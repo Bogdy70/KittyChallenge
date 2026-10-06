@@ -7,6 +7,7 @@ export function Icon({ name, size = 20, ...props }) {
         <path d="M5 12h14m-6-6 6 6-6 6" />
       </>
     ),
+    edit: <path d="m14 4 6 6M4 20l5-1L21 7a2.8 2.8 0 0 0-4-4L5 15Z" />,
     check: <path d="m5 12 4 4L19 6" />,
     expand: <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />,
     fit: (

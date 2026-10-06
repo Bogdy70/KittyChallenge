@@ -1,3 +1,4 @@
+import { checkPuzzleSorting } from "./puzzle-sorting-browser-check.mjs";
 import { checkVoiceAdmin, checkVoicePlayer } from "./voice-browser-check.mjs";
 import { wav } from "../tests/audio-fixture.mjs";
 import { chromium } from "@playwright/test";
@@ -714,9 +715,10 @@ try {
     0,
   );
   await checkVoicePlayer(page);
+  await checkPuzzleSorting(browser, base, out, errors);
   assert.deepEqual(errors, [], "no browser runtime errors");
   console.log(
-    "Browser checks passed: login, matrix completion, hints, puzzle placement/persistence, mobile layouts, admin settings/photo/exercise, 500 pieces, editable messages and JSON import/export, gated journey, native fullscreen, mobile touch and landscape/fallback, recorded/generated voice, cache and mobile audio fallback.",
+    "Browser checks passed: login, matrix completion, hints, puzzle placement/persistence, mobile layouts, admin settings/photo/exercise, 500 pieces, editable messages and JSON import/export, gated journey, native fullscreen, mobile touch and landscape/fallback, recorded/generated voice, cache and mobile audio fallback, fullscreen guide audio, persistent per-account sorting, shapes/colors, custom boxes, mouse drag and touch.",
   );
 } catch (e) {
   if (page)
