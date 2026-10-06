@@ -1,3 +1,4 @@
+import { useMessages } from "./Messages";
 import React from "react";
 export function Icon({ name, size = 20, ...props }) {
   const paths = {
@@ -247,18 +248,21 @@ export function Cat({
   );
 }
 export function PartyArt() {
+  const { t } = useMessages();
   return (
     <div className="party-art">
       <div className="orbit-ring" />
       <div className="age-art">
-        20<span>de ani de magie</span>
+        20<span>{t("home.de-ani-de-magie")}</span>
       </div>
       <Cat party className="hero-cat" />
       <span className="sticker sticker-yellow">
-        <Icon name="star" /> ediție limitată
+        <Icon name="star" />
+        {" " + t("home.editie-limitata")}
       </span>
       <span className="sticker sticker-white">
-        100% adorabilă <Icon name="heart" />
+        {t("home.100-adorabila") + " "}
+        <Icon name="heart" />
       </span>
       <span className="art-spark one">✦</span>
       <span className="art-spark two">✳</span>
@@ -270,19 +274,28 @@ export function PartyArt() {
 export function Confetti({ burst }) {
   return burst ? (
     <div className="confetti" aria-hidden="true" key={burst}>
-      {Array.from({ length: 42 }, (_, i) => (
-        <i
-          key={i}
-          style={{
-            "--x": `${(i * 37) % 100}vw`,
-            "--delay": `${(i % 7) * 0.07}s`,
-            "--rot": `${i * 31}deg`,
-            "--color": ["#fa4c9a", "#ae8cff", "#b9ed7a", "#5ebcfb", "#ffe273"][
-              i % 5
-            ],
-          }}
-        />
-      ))}
+      {Array.from(
+        {
+          length: 42,
+        },
+        (_, i) => (
+          <i
+            key={i}
+            style={{
+              "--x": `${(i * 37) % 100}vw`,
+              "--delay": `${(i % 7) * 0.07}s`,
+              "--rot": `${i * 31}deg`,
+              "--color": [
+                "#fa4c9a",
+                "#ae8cff",
+                "#b9ed7a",
+                "#5ebcfb",
+                "#ffe273",
+              ][i % 5],
+            }}
+          />
+        ),
+      )}
     </div>
   ) : null;
 }
@@ -303,7 +316,11 @@ export function Progress({ value, max, label }) {
         aria-valuemin={0}
         aria-valuemax={max || 1}
       >
-        <span style={{ width: `${max ? (value / max) * 100 : 0}%` }} />
+        <span
+          style={{
+            width: `${max ? (value / max) * 100 : 0}%`,
+          }}
+        />
       </div>
     </div>
   );
@@ -317,10 +334,11 @@ export function ErrorBox({ children }) {
   ) : null;
 }
 export function Loading() {
+  const { t } = useMessages();
   return (
     <div className="loading" role="status">
       <Cat sleepy />
-      <span>Se pregătesc pisicuțele…</span>
+      <span>{t("general.se-pregatesc-pisicutele")}</span>
     </div>
   );
 }

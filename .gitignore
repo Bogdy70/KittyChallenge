@@ -6,3 +6,4 @@ config/accounts.json
 *.log
 .DS_Store
 artifacts/
+config/network.json

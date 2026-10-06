@@ -1,3 +1,4 @@
+import { useMessages } from "./Messages";
 import React, { useEffect, useId, useRef, useState } from "react";
 
 // Only one guide speaks at a time; unmounting another guide must not interrupt it.
@@ -169,15 +170,16 @@ export function KnightCat({ mood = "welcome", className = "" }) {
     </svg>
   );
 }
-
 export function GuideSpeech({
-  title = "Cavalerul Miau",
+  title,
   message,
   detail,
   mood = "welcome",
   className = "",
   speak = true,
 }) {
+  const { t } = useMessages();
+  title ??= t("guide.name");
   const voiceOwner = useRef({});
   const [talking, setTalking] = useState(false);
   const [voiceNote, setVoiceNote] = useState("");
@@ -204,7 +206,9 @@ export function GuideSpeech({
     const voice = synth.getVoices().find((v) => /^ro([_-]|$)/i.test(v.lang));
     if (!voice) {
       setVoiceNote(
-        "Vocea română nu este instalată pe acest dispozitiv. Îți las povestea scrisă aici, miau!",
+        t(
+          "guide.vocea-romana-nu-este-instalata-pe-acest-dispozitiv-iti-las-povest",
+        ),
       );
       return;
     }
@@ -215,7 +219,10 @@ export function GuideSpeech({
     line.lang = "ro-RO";
     line.voice = voice;
     line.rate = 0.95;
-    const reader = { owner: voiceOwner.current, stop: () => setTalking(false) };
+    const reader = {
+      owner: voiceOwner.current,
+      stop: () => setTalking(false),
+    };
     currentVoice = reader;
     line.onstart = () => {
       if (currentVoice === reader) setTalking(true);
@@ -232,24 +239,26 @@ export function GuideSpeech({
       setTalking(false);
       if (!["canceled", "interrupted"].includes(event.error))
         setVoiceNote(
-          "Nu pot porni vocea acum. Putem continua cu mesajele scrise.",
+          t("guide.nu-pot-porni-vocea-acum-putem-continua-cu-mesajele-scrise"),
         );
     };
     try {
       synth.speak(line);
     } catch {
-      line.onerror({ error: "unavailable" });
+      line.onerror({
+        error: "unavailable",
+      });
     }
   }
   return (
     <div className={`guide-speech ${className} ${talking ? "is-talking" : ""}`}>
       <div className="guide-avatar">
         <KnightCat mood={mood} />
-        <span>Cavalerul Miau</span>
+        <span>{t("guide.name")}</span>
       </div>
       <div className={`guide-bubble guide-${mood}`}>
         <div className="guide-caption">
-          <span>GHIDUL TĂU CU LĂBUȚE</span>
+          <span>{t("guide.ghidul-tau-cu-labute")}</span>
           {speak && hasVoice && (
             <button
               type="button"
@@ -258,11 +267,11 @@ export function GuideSpeech({
               aria-pressed={talking}
               aria-label={
                 talking
-                  ? "Oprește vocea cavalerului"
-                  : "Ascultă mesajul cavalerului"
+                  ? t("guide.opreste-vocea-cavalerului")
+                  : t("guide.asculta-mesajul-cavalerului")
               }
             >
-              {talking ? "■ Oprește" : "♫ Ascultă"}
+              {talking ? t("guide.opreste") : t("guide.asculta")}
             </button>
           )}
         </div>
@@ -285,7 +294,6 @@ export function GuideSpeech({
     </div>
   );
 }
-
 export function AmbientBackground() {
   return (
     <div className="ambient-background" aria-hidden="true">
@@ -294,23 +302,28 @@ export function AmbientBackground() {
       <div className="aurora aurora-green" />
       <div className="aurora aurora-yellow" />
       <div className="ambient-grain" />
-      {Array.from({ length: 16 }, (_, i) => (
-        <span
-          className="ambient-spark"
-          key={i}
-          style={{
-            "--left": `${(i * 31 + 7) % 100}%`,
-            "--top": `${(i * 17 + 11) % 100}%`,
-            "--delay": `${-i * 1.8}s`,
-            "--duration": `${12 + (i % 5) * 3}s`,
-            "--spark-color": ["#df238d", "#155cbe", "#357624", "#7e36b8"][
-              i % 4
-            ],
-          }}
-        >
-          {i % 3 === 0 ? "✧" : i % 3 === 1 ? "✦" : "♡"}
-        </span>
-      ))}
+      {Array.from(
+        {
+          length: 16,
+        },
+        (_, i) => (
+          <span
+            className="ambient-spark"
+            key={i}
+            style={{
+              "--left": `${(i * 31 + 7) % 100}%`,
+              "--top": `${(i * 17 + 11) % 100}%`,
+              "--delay": `${-i * 1.8}s`,
+              "--duration": `${12 + (i % 5) * 3}s`,
+              "--spark-color": ["#df238d", "#155cbe", "#357624", "#7e36b8"][
+                i % 4
+              ],
+            }}
+          >
+            {i % 3 === 0 ? "✧" : i % 3 === 1 ? "✦" : "♡"}
+          </span>
+        ),
+      )}
     </div>
   );
 }

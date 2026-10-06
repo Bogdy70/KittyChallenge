@@ -1,3 +1,5 @@
+import { renderMessage, validateMessages } from "../shared/messages.mjs";
+import { readNetwork, addressUrl } from "./network.mjs";
 import http from "node:http";
 import { DatabaseSync } from "node:sqlite";
 import {
@@ -126,8 +128,12 @@ export function createApp({
   db.prepare("INSERT OR IGNORE INTO settings VALUES(1,?)").run(
     JSON.stringify(defaults),
   );
-  const settings = () =>
-    JSON.parse(db.prepare("SELECT value FROM settings WHERE id=1").get().value);
+  const settings = () => {
+    const s = JSON.parse(
+      db.prepare("SELECT value FROM settings WHERE id=1").get().value,
+    );
+    return { ...s, messages: s.messages || {} };
+  };
   const saveSettings = (value) =>
     db
       .prepare("UPDATE settings SET value=? WHERE id=1")
@@ -143,6 +149,15 @@ export function createApp({
       .prepare("SELECT * FROM exercises ORDER BY created")
       .all()
       .map((x) => ({ ...JSON.parse(x.value), id: x.id }));
+  function currentExerciseCopy(e) {
+    if (e.id.startsWith("g-")) return e;
+    const latest = db
+      .prepare("SELECT value FROM exercises WHERE id=?")
+      .get(e.id);
+    if (!latest) return e;
+    const copy = JSON.parse(latest.value);
+    return { ...e, title: copy.title, hint: copy.hint };
+  }
   function newRun(id) {
     const level = settings().difficulty;
     const exercises = [
@@ -166,7 +181,13 @@ export function createApp({
   const exposedRun = (r) => ({
     id: r.id,
     level: r.level,
-    exercises: r.exercises.map((e) => publicExercise(e, r.state[e.id])),
+    exercises: r.exercises.map((e) =>
+      publicExercise(
+        currentExerciseCopy(e),
+        r.state[e.id],
+        settings().messages,
+      ),
+    ),
     solved: Object.values(r.state).filter((s) => s.solved).length,
   });
   const rates = new Map();
@@ -208,6 +229,8 @@ export function createApp({
           throw fail(403, "Cerere dintr-o origine nepermisă.");
       }
       if (path === "/api/health") return json(res, 200, { ok: true });
+      if (path === "/api/content" && method === "GET")
+        return json(res, 200, { messages: settings().messages });
       if (path === "/api/login" && method === "POST") {
         const key = req.socket.remoteAddress;
         const now = Date.now();
@@ -233,10 +256,7 @@ export function createApp({
           user?.password_hash || dummy,
         );
         if (!user || !valid)
-          throw fail(
-            401,
-            "Utilizatorul sau parola nu se potrivesc. Mai încearcă.",
-          );
+          throw fail(401, renderMessage(settings().messages, "login.invalid"));
         const token = randomBytes(32).toString("hex");
         db.prepare("INSERT INTO sessions VALUES(?,?,?)").run(
           hash(token),
@@ -285,7 +305,8 @@ export function createApp({
       );
       if (exerciseRoute && method === "POST") {
         const run = getRun(user.id);
-        const e = run.exercises.find((e) => e.id === exerciseRoute[1]);
+        const original = run.exercises.find((e) => e.id === exerciseRoute[1]);
+        const e = original ? currentExerciseCopy(original) : null;
         if (!e) throw fail(404, "Exercițiul nu mai este în acest set.");
         const body = await jsonBody(req);
         if (body.runId !== run.id)
@@ -297,24 +318,28 @@ export function createApp({
         let result;
         if (exerciseRoute[2] === "hint") {
           state.hintUsed = true;
-          result = { hint: hint(e) };
+          result = { hint: hint(e, settings().messages) };
         } else if (exerciseRoute[2] === "solution") {
           state.revealed = true;
-          result = { answer: solve(e), explanation: explanation(e) };
+          result = {
+            answer: solve(e),
+            explanation: explanation(e, settings().messages),
+          };
         } else {
           result = grade(e, body.answer);
           state.attempts = (state.attempts || 0) + 1;
           state.solved = state.solved || result.correct;
           result.message = result.correct
-            ? "Purrfect! Ai găsit răspunsul."
-            : "Aproape! Mai verifică căsuțele marcate.";
-          if (result.correct) result.explanation = explanation(e);
+            ? renderMessage(settings().messages, "math.correct")
+            : renderMessage(settings().messages, "math.incorrect");
+          if (result.correct)
+            result.explanation = explanation(e, settings().messages);
         }
         run.state[e.id] = state;
         saveRun(user.id, run);
         return json(res, 200, {
           ...result,
-          exercise: publicExercise(e, state),
+          exercise: publicExercise(e, state, settings().messages),
           solved: Object.values(run.state).filter((s) => s.solved).length,
         });
       }
@@ -368,6 +393,15 @@ export function createApp({
           "DELETE FROM puzzle_progress WHERE user_id=? AND version=?",
         ).run(user.id, p.version);
         return json(res, 200, { ok: true });
+      }
+      if (path === "/api/admin/messages" && method === "GET")
+        return json(res, 200, { messages: settings().messages });
+      if (path === "/api/admin/messages" && method === "PUT") {
+        const body = await jsonBody(req),
+          s = settings();
+        s.messages = validateMessages(body.messages);
+        saveSettings(s);
+        return json(res, 200, s);
       }
       if (path === "/api/admin/settings" && method === "PATCH") {
         const body = await jsonBody(req);
@@ -477,6 +511,35 @@ export function createApp({
       const deleteRoute = path.match(
         /^\/api\/admin\/exercises\/([a-zA-Z0-9-]+)$/,
       );
+      if (deleteRoute && method === "PATCH") {
+        const row = db
+          .prepare("SELECT value FROM exercises WHERE id=?")
+          .get(deleteRoute[1]);
+        if (!row) throw fail(404, "Exercițiu inexistent.");
+        const body = await jsonBody(req);
+        if (
+          typeof body.title !== "string" ||
+          !body.title.trim() ||
+          body.title.length > 100 ||
+          typeof body.hint !== "string" ||
+          body.hint.length > 500 ||
+          Object.keys(body).some((k) => !["title", "hint"].includes(k))
+        )
+          throw fail(
+            400,
+            "Poți modifica titlul și indiciul, cu maximum 100 și 500 de caractere.",
+          );
+        const e = {
+          ...JSON.parse(row.value),
+          title: body.title.trim(),
+          hint: body.hint,
+        };
+        db.prepare("UPDATE exercises SET value=? WHERE id=?").run(
+          JSON.stringify(e),
+          e.id,
+        );
+        return json(res, 200, e);
+      }
       if (deleteRoute && method === "DELETE") {
         db.prepare("DELETE FROM exercises WHERE id=?").run(deleteRoute[1]);
         return json(res, 200, { ok: true });
@@ -589,10 +652,17 @@ if (
   pathToFileURL(resolve(process.argv[1])).href === import.meta.url
 ) {
   const server = createApp();
-  const port = Number(process.env.PORT || 3001);
-  server.listen(port, process.env.HOST || "127.0.0.1", () =>
+  const { host, port } = readNetwork();
+  server.on("error", (error) => {
+    console.error(
+      `Nu pot porni pe ${host}:${port}: ${error.message}. Rulează npm run addresses sau npm run configure:network -- --local.`,
+    );
+    process.exitCode = 1;
+    server.close();
+  });
+  server.listen(port, host, () =>
     console.log(
-      `Kitty Party: http://localhost:${server.address().port}\nConturile și parolele sunt în ${accountFile}.`,
+      `Kitty Party: ${addressUrl(host, server.address().port)}\nConturile și parolele sunt în ${accountFile}.\nAdrese disponibile: npm run addresses`,
     ),
   );
   for (const signal of ["SIGINT", "SIGTERM"])

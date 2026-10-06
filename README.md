@@ -16,9 +16,9 @@ npm run build
 npm start
 ```
 
-Deschide **http://localhost:3001**. În Windows poți folosi și `./scripts/start-app.ps1`.
+La prima instalare, deschide **http://localhost:3001**. Dacă ai ales altă adresă, folosește URL-ul afișat în consolă sau `npm run addresses`. În Windows poți folosi și `./scripts/start-app.ps1`.
 
-Pentru dezvoltare, `npm run dev` pornește API-ul pe 3001 și Vite pe **http://localhost:5174**, cu actualizare automată. Frontend-ul folosește un proxy local pentru API și imagini. Fonturile sunt incluse local; nu există cereri către Google Fonts.
+Pentru dezvoltare, `npm run dev` pornește API-ul pe 3001 și Vite pe portul **5174**, pe adresa configurată, cu actualizare automată. Frontend-ul folosește un proxy local pentru API și imagini. Fonturile sunt incluse local; nu există cereri către Google Fonts.
 
 ## Cele două conturi și parolele
 
@@ -79,6 +79,20 @@ Un pisoi alb-negru în armură, cu pelerină magenta și sabie, te însoțește 
 
 Butonul **Ascultă** citește mesajul numai la cerere, prin vocea română instalată pe dispozitiv (Web Speech API). Dacă aceasta lipsește, ghidul explică situația și mesajul rămâne scris. Nu este necesar un serviciu AI sau o cheie API.
 
+## Textele, indiciile și replicile
+
+Deschide **Atelier → Textele**. Catalogul are **214 texte editabile**: autentificare, aniversare, navigare, replicile cavalerului, reacții, butoane, titluri, indicii și explicații. Caută un cuvânt sau alege o categorie. Previzualizarea folosește valori de exemplu.
+
+- Schimbă numele cavalerului; referințele cu `{guide}` se actualizează automat.
+- Folosește variabilele afișate sub câmp: `{recipient}`, `{scalar}`, `{determinant}`, `{row}`, `{col}` și celelalte variabile specifice acelui text.
+- **Salvează textele** aplică modificările. Câmpurile goale și „Text implicit” revin la varianta originală.
+- Exportă/importă textele personalizate în JSON pentru backup sau pregătire offline. Importul intră întâi în editor; se aplică după salvare.
+- În **Atelier → Exercițiile**, butonul de editare permite modificarea titlului și indiciului unui exercițiu existent, inclusiv pentru seturi începute. Numerele și progresul rămân intacte. Indiciul personalizat are prioritate față de cel general al operației; un indiciu gol folosește textul general.
+
+Textele sunt salvate în SQLite, fără modificarea codului sau repornirea serverului. Titlurile și indiciile sunt folosite de API la următoarea cerere; textele din alte ferestre se actualizează la reîncărcare sau la revenirea în fereastră. Datele mesajelor de prezentare sunt disponibile înainte de login; conturile, progresul și fotografiile rămân protejate. Textele se afișează ca text simplu, fără HTML executabil. Editorul validează lungimile și variabilele; limita totală este 120 KB. Mesajele tehnice ale administratorului și unele erori de sistem rămân fixe.
+
+[Previzualizarea editorului](docs/text-editor.png)
+
 ## Design și arhitectură
 
 React + Vite, CSS propriu, fonturi locale DM Sans / Outfit și ilustrații SVG originale. Fundal aurora animat, panouri intens colorate, magenta, roz, lavandă, verde, albastru și galben; pisicuțe care clipesc și mișcă coada, butoane cu gradient animat, steluțe, bandă aniversară și confetti. Animațiile respectă `prefers-reduced-motion`.
@@ -89,6 +103,8 @@ Din Orderly sunt păstrate structura cont → dashboard → provocare, component
 frontend/src/
   App.jsx                autentificare, navigare, dashboard
   Art.jsx                pisicuțe, iconițe, progres, confetti
+  Messages.jsx           catalogul de texte, încărcare publică, context
+  TextEditor.jsx         editare, previzualizare, export/import
   Guide.jsx              cavaler SVG, dialog, voce opțională, aurora
   MathChallenge.jsx      interfața exercițiilor
   PuzzleChallenge.jsx    puzzle, gesturi, zoom, salvare
@@ -101,6 +117,8 @@ server/
   accounts.mjs           generare / validare conturi din fișier
   math.mjs               generare, validare, soluții și verificare
   puzzle.mjs             dimensiunile grilei și validarea progresului
+  network.mjs            configurație de adresă și detectare Tailscale
+shared/messages.mjs      texte implicite, variabile și validare comună
 public/                  ilustrații SVG originale
 tests/                   teste matematice și integrare API
 scripts/browser-check.mjs  verificări reale în browser, izolate de datele aplicației
@@ -113,20 +131,62 @@ Fișiere persistente:
 - `data/kitty.sqlite` — conturi, sesiuni, setări, exerciții și progres.
 - `data/uploads/` — fotografii încărcate; imaginile vechi rămân păstrate local.
 - `config/accounts.json` — configurarea locală a celor două conturi.
+- `config/network.json` — adresa și portul acestui calculator; exclus din Git.
 
 Pentru backup simplu, oprește aplicația și copiază **data/** și **config/** împreună. Nu șterge aceste directoare la actualizarea codului.
 
-## Docker și acces de pe alt dispozitiv
+## Adrese și Tailscale
+
+Pentru afișarea adreselor localhost, LAN, Tailscale IPv4/IPv6 și MagicDNS:
+
+```powershell
+npm run addresses
+# Sau, pe Windows:
+./scripts/show-addresses.ps1
+```
+
+Pentru a folosi adresa Tailscale a calculatorului:
+
+```powershell
+npm run configure:network -- --tailscale
+npm run build
+npm start
+```
+
+Tailscale trebuie să fie instalat și conectat. Scriptul detectează IP-ul și salvează **config/network.json**. Serverul ascultă doar pe acel IP; frontend-ul, API-ul și fotografiile folosesc aceeași origine. Configurația funcționează și cu **npm run dev**, unde pagina se deschide pe portul **5174**, iar proxy-ul folosește portul API configurat. Nu sunt necesare schimbări manuale în URL-urile React.
+
+Oprește și repornește serverele după schimbarea adresei. Pe telefonul/laptopul invitatei, conectează Tailscale în aceeași rețea sau acordă-i acces la dispozitiv prin Tailscale; regulile tailnet-ului trebuie să permită accesul. Calculatorul gazdă și aplicația trebuie să rămână pornite. Lista arată adresele calculatorului, fără să deschidă automat toate interfețele.
+
+Alte variante:
+
+```powershell
+# Înapoi la localhost:
+npm run configure:network -- --local
+# Un IP al acestui calculator, cu alt port:
+npm run configure:network -- --host 192.168.1.4 --port 3002
+# Toate interfețele IPv4 (LAN și Tailscale):
+npm run configure:network -- --host 0.0.0.0
+# Echivalent Windows; implicit alege Tailscale:
+./scripts/configure-address.ps1
+./scripts/configure-address.ps1 -Mode local
+./scripts/configure-address.ps1 -Mode custom -Address 192.168.1.4 -Port 3002
+```
+
+Adresa LAN din exemple trebuie înlocuită cu cea afișată pe calculatorul tău. `HOST` / `PORT` din mediul procesului au prioritate față de fișier. Pe un calculator nou, rulează din nou configurarea Tailscale. Datele personale și progresul nu se modifică.
+
+Accesul direct folosește HTTP pe adresa privată Tailscale. Dacă vrei un URL HTTPS privat, [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve) poate face proxy către aplicație: configurează întâi localhost, pornește aplicația, apoi `tailscale serve --bg http://127.0.0.1:3001`. Această variantă este opțională și scripturile nu modifică setările Serve/Funnel existente. Pentru HTTPS poți seta `COOKIE_SECURE=true`; pentru adresa HTTP directă lasă `COOKIE_SECURE=false`.
+
+## Docker
 
 ```powershell
 docker compose up --build -d
 ```
 
-Aceleași directoare `data/` și `config/` sunt montate în container. Implicit, serverul și Compose ascultă doar pe localhost. Pentru LAN/Tailscale, setează `HOST=0.0.0.0` la pornirea Node sau schimbă publicarea portului Compose în `3001:3001`, apoi folosește adresa privată a calculatorului gazdă. Serverul livrează frontend-ul și API-ul de la aceeași origine; nu este nevoie să reconstruiești URL-uri pentru alt hostname.
+Aceleași directoare `data/` și `config/` sunt montate în container. Implicit, Compose publică portul doar pe localhost. Configurația `network.json` este folosită de Node/Vite; pentru Docker, publicarea portului se configurează separat. Setează `KITTY_BIND_ADDRESS` la IP-ul Tailscale afișat de `npm run addresses` înainte de `docker compose up --build -d`. În PowerShell: `$env:KITTY_BIND_ADDRESS="IP_TAILSCALE"`. Serverul livrează frontend-ul și API-ul de la aceeași origine; nu este nevoie să reconstruiești URL-uri pentru alt hostname.
 
 Pentru găzduire publică, pune aplicația în spatele unui reverse proxy cu **HTTPS** și setează `COOKIE_SECURE=true`. Această implementare nu publică singură un site sau un tunel și nu configurează firewall-ul. Pe Linux, directoarele montate trebuie să permită scrierea utilizatorului containerului (`node`, UID 1000).
 
-Variabile opționale: `PORT` (3001), `HOST` (127.0.0.1), `DATA_DIR`, `ACCOUNTS_FILE`, `COOKIE_SECURE`. Pornirea Node folosește variabilele procesului; Docker Compose citește `.env`. Nu sunt necesare chei API sau servicii plătite.
+Variabile opționale: `PORT` (3001), `HOST` (127.0.0.1), `DATA_DIR`, `ACCOUNTS_FILE`, `NETWORK_FILE`, `COOKIE_SECURE`. Pornirea Node folosește variabilele procesului; Docker Compose citește `.env`. Nu sunt necesare chei API sau servicii plătite.
 
 ## Verificări
 
@@ -138,7 +198,7 @@ npm run test:browser
 
 Testele browser folosesc Edge instalat în Windows. Pe Linux/macOS rulează înainte `npx playwright install chromium`. Conturile, fotografiile și progresul testelor sunt create într-un director temporar și apoi eliminate. Capturile sunt salvate local în `artifacts/`, exclus din Git.
 
-Sunt testate operațiile și fracțiile, 1.500 de seturi generate, identitatea `A × A⁻¹ = I`, validarea, permisiunile, conturile, sesiunile, schimbarea parolei, upload-ul privat și persistența. Testele în browser verifică desktop/mobil, rezolvarea matricelor, puzzle prin click / drag / tastatură, administrarea și redarea a 500 de piese.
+Sunt testate operațiile și fracțiile, 1.500 de seturi generate, identitatea `A × A⁻¹ = I`, validarea, permisiunile, conturile, sesiunile, schimbarea parolei, upload-ul privat și persistența. Testele în browser verifică desktop/mobil, rezolvarea matricelor, puzzle prin click / drag / tastatură, administrarea, redarea a 500 de piese, editorul de texte, export/import, personalizarea vizibilă după login și pe telefon.
 
 GitHub Actions rulează testele Node, compilarea și scenariile browser în Chromium. La eșec, capturile sunt disponibile ca artefact al rulării. `npm run format` formatează sursele cu Prettier.
 
@@ -146,7 +206,7 @@ GitHub Actions rulează testele Node, compilarea și scenariile browser în Chro
 
 - Puzzle-ul este o tablă cu locuri fixe și piese care se fixează corect, fără rotire sau grupuri libere de piese.
 - Progresul este persistent, dar aplicația are nevoie de conexiune pentru autentificare și salvare. Nu este un mod offline.
-- Setările noi devin vizibile după reîncărcare; nu există sincronizare în timp real între ferestrele deschise.
+- Setările provocărilor se actualizează la reîncărcare. Textele se reîncarcă și când revii în fereastră; nu există sincronizare în timp real.
 - Conturile sunt configurate local, fără resetare prin e-mail, înregistrare sau servicii externe.
 - Nu există cronometru, penalizări sau blocarea unei provocări în spatele celeilalte.
 

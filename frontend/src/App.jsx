@@ -1,3 +1,4 @@
+import { useMessages, MessageProvider } from "./Messages";
 import React, { useEffect, useState, useCallback } from "react";
 import { api, useHash } from "./api";
 import {
@@ -13,9 +14,12 @@ import MathChallenge from "./MathChallenge";
 import PuzzleChallenge from "./PuzzleChallenge";
 import Admin from "./Admin";
 import { KnightCat, GuideSpeech, AmbientBackground } from "./Guide";
-
 function Login({ onLogin }) {
-  const [form, setForm] = useState({ username: "", password: "" }),
+  const { t } = useMessages();
+  const [form, setForm] = useState({
+      username: "",
+      password: "",
+    }),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [show, setShow] = useState(false);
@@ -24,7 +28,12 @@ function Login({ onLogin }) {
     setBusy(true);
     setError("");
     try {
-      onLogin(await api("/login", { method: "POST", body: form }));
+      onLogin(
+        await api("/login", {
+          method: "POST",
+          body: form,
+        }),
+      );
     } catch (e) {
       setError(e.message);
     } finally {
@@ -36,72 +45,86 @@ function Login({ onLogin }) {
       <div className="login-top">
         <Brand />
         <span className="tag">
-          <Icon name="heart" size={15} /> făcut cu drag
+          <Icon name="heart" size={15} />
+          {" " + t("login.facut-cu-drag")}
         </span>
       </div>
       <div className="login-layout">
         <section className="login-story">
           <div className="eyebrow">
-            <span className="live-dot" /> O PETRECERE DOAR PENTRU TINE
+            <span className="live-dot" />
+            {" " + t("login.o-petrecere-doar-pentru-tine")}
           </div>
           <h1>
-            Mai mult
+            {t("login.mai-mult")}
             <br />
-            decât un <span className="hand-underline">cadou.</span>
+            {t("login.decat-un") + " "}
+            <span className="hand-underline">{t("login.cadou")}</span>
           </h1>
           <p>
-            Un pic de joacă. Un strop de magie.
+            {t("login.un-pic-de-joaca-un-strop-de-magie")}
             <br />
-            Și o mulțime de motive să zâmbești.
+            {t("login.si-o-multime-de-motive-sa-zambesti")}
           </p>
           <PartyArt />
           <div className="story-footer">
-            <span>✦ Pisicuțe incluse</span>
-            <span>✦ Zâmbete garantate</span>
+            <span>{t("login.pisicute-incluse")}</span>
+            <span>{t("login.zambete-garantate")}</span>
           </div>
         </section>
         <section className="login-card">
           <span className="login-cat-badge">
             <KnightCat />
           </span>
-          <div className="eyebrow">BINE AI VENIT ÎN CLUB</div>
+          <div className="eyebrow">{t("login.bine-ai-venit-in-club")}</div>
           <h2>
-            Hei, sărbătorito<span className="pink">!</span>
+            {t("login.hei-sarbatorito")}
+            <span className="pink">!</span>
           </h2>
           <p>
-            Surpriza ta începe cu un mic „miau”.
+            {t("login.surpriza-ta-incepe-cu-un-mic-miau")}
             <br />
-            Intră în cont și descoperă ce ți-am pregătit.
+            {t("login.intra-in-cont-si-descopera-ce-ti-am-pregatit")}
           </p>
           <form onSubmit={submit}>
             <label>
-              Nume de utilizator
+              {t("login.nume-de-utilizator")}
               <input
                 autoComplete="username"
                 required
-                placeholder="Numele tău de utilizator"
+                placeholder={t("login.numele-tau-de-utilizator")}
                 value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    username: e.target.value,
+                  })
+                }
               />
             </label>
             <label>
-              Parolă
+              {t("login.parola")}
               <div className="password-field">
                 <input
                   type={show ? "text" : "password"}
                   autoComplete="current-password"
                   required
-                  placeholder="Secretul nostru"
+                  placeholder={t("login.secretul-nostru")}
                   value={form.password}
                   onChange={(e) =>
-                    setForm({ ...form, password: e.target.value })
+                    setForm({
+                      ...form,
+                      password: e.target.value,
+                    })
                   }
                 />
                 <button
                   className="icon-button"
                   type="button"
                   onClick={() => setShow(!show)}
-                  aria-label={show ? "Ascunde parola" : "Arată parola"}
+                  aria-label={
+                    show ? t("login.ascunde-parola") : t("login.arata-parola")
+                  }
                   aria-pressed={show}
                 >
                   <Icon name="eye" />
@@ -110,18 +133,21 @@ function Login({ onLogin }) {
             </label>
             <ErrorBox>{error}</ErrorBox>
             <button className="button rainbow wide" disabled={busy}>
-              {busy ? "Deschidem cadoul…" : "Să înceapă surpriza"}
+              {busy
+                ? t("login.deschidem-cadoul")
+                : t("login.sa-inceapa-surpriza")}
               <Icon name="arrow" />
             </button>
           </form>
           <div className="login-note">
-            <Icon name="lock" size={15} /> O invitație specială. Doar pentru voi
-            doi.
+            <Icon name="lock" size={15} />
+            {" " + t("login.o-invitatie-speciala-doar-pentru-voi-doi")}
           </div>
         </section>
       </div>
       <footer className="login-bottom">
-        LA MULȚI ANI!!! <span>20 de ani. Nenumărate aventuri.</span> ♥
+        {t("login.la-multi-ani") + " "}
+        <span>{t("login.20-de-ani-nenumarate-aventuri")}</span> ♥
       </footer>
     </main>
   );
@@ -142,6 +168,7 @@ function Brand() {
   );
 }
 function Dashboard({ settings, overview, navigate }) {
+  const { t } = useMessages();
   const math = overview?.math,
     puzzle = overview?.puzzle;
   const done =
@@ -153,12 +180,13 @@ function Dashboard({ settings, overview, navigate }) {
       <section className="hero">
         <div className="hero-copy">
           <div className="eyebrow">
-            <span className="live-dot" /> ZIUA TA. REGULILE PISICUȚELOR.
+            <span className="live-dot" />
+            {" " + t("home.ziua-ta-regulile-pisicutelor")}
           </div>
           <h1>
-            La mulți
+            {t("home.la-multi")}
             <br />
-            <span className="pink hand-underline">ani!!!</span>{" "}
+            <span className="pink hand-underline">{t("home.ani")}</span>{" "}
             <span className="little-star">✳</span>
           </h1>
           <p>
@@ -166,10 +194,12 @@ function Dashboard({ settings, overview, navigate }) {
           </p>
           <div className="hero-chips">
             <span>
-              <Icon name="heart" size={16} /> făcute cu drag
+              <Icon name="heart" size={16} />
+              {" " + t("home.facute-cu-drag")}
             </span>
             <span>
-              <Icon name="spark" size={16} /> zero grabă, multă joacă
+              <Icon name="spark" size={16} />
+              {" " + t("home.zero-graba-multa-joaca")}
             </span>
           </div>
         </div>
@@ -177,35 +207,51 @@ function Dashboard({ settings, overview, navigate }) {
       </section>
       <div className="ticker" aria-hidden="true">
         <div>
-          {Array.from({ length: 6 }, (_, i) => (
-            <span key={i}>
-              MIAU MULȚI ANI <span>✦</span> ASTĂZI E DESPRE TINE <span>✦</span>
-            </span>
-          ))}
+          {Array.from(
+            {
+              length: 6,
+            },
+            (_, i) => (
+              <span key={i}>
+                {t("home.miau-multi-ani") + " "}
+                <span>✦</span>
+                {" " + t("home.astazi-e-despre-tine") + " "}
+                <span>✦</span>
+              </span>
+            ),
+          )}
         </div>
       </div>
       <GuideSpeech
         className="welcome-guide"
-        title={`Bun venit în aventură, ${settings.recipient}!`}
-        message="Eu sunt Cavalerul Miau, paznicul cadoului tău. Am o sabie mică și mult curaj pentru noi amândoi. Alegi tu prima misiune?"
-        detail="La matrici îți șoptesc indicii. La puzzle căutăm împreună locul fiecărei amintiri. Fără grabă — astăzi sărbătorim 20 de ani de tine!"
+        title={t("home.welcome.title", {
+          recipient: settings.recipient,
+        })}
+        message={t(
+          "home.eu-sunt-cavalerul-miau-paznicul-cadoului-tau-am-o-sabie-mica-si-m",
+        )}
+        detail={t(
+          "home.la-matrici-iti-soptesc-indicii-la-puzzle-cautam-impreuna-locul-fi",
+        )}
       />
       <section className="challenges">
         <div className="section-title">
           <div>
-            <div className="eyebrow">MICILE TALE AVENTURI</div>
-            <h2>Două provocări. O zi specială.</h2>
+            <div className="eyebrow">{t("home.micile-tale-aventuri")}</div>
+            <h2>{t("home.doua-provocari-o-zi-speciala")}</h2>
           </div>
           <span className="tag white">
-            <Icon name="paw" size={16} /> în ritmul tău
+            <Icon name="paw" size={16} />
+            {" " + t("home.in-ritmul-tau")}
           </span>
         </div>
         <div className="challenge-grid">
           <article className="challenge-card math-card">
             <div className="card-top">
-              <span className="number-label">01 / PENTRU MINTE</span>
+              <span className="number-label">{t("home.01-pentru-minte")}</span>
               <span className="pill">
-                {math?.exercises.length || 5} exerciții
+                {math?.exercises.length || 5}
+                {" " + t("home.exercitii")}
               </span>
             </div>
             <div className="challenge-illustration matrix-mini">
@@ -218,60 +264,67 @@ function Dashboard({ settings, overview, navigate }) {
                 <span>3</span>
               </div>
               <span className="floating-symbol">✦</span>
-              <span className="matrix-formula">A + B = ♡</span>
+              <span className="matrix-formula">{t("home.a-b")}</span>
             </div>
-            <h3>Matrici & mustăți</h3>
+            <h3>{t("home.matrici-mustati")}</h3>
             <p>
-              Numere mici, satisfacții mari. Rezolvă, descoperă și lasă
-              pisicuțele să te ghideze.
+              {t(
+                "home.numere-mici-satisfactii-mari-rezolva-descopera-si-lasa-pisicutele",
+              )}
             </p>
             <Progress
               value={math?.solved || 0}
               max={math?.exercises.length || 5}
-              label="Exerciții rezolvate"
+              label={t("home.exercitii-rezolvate")}
             />
             <button
               className="button dark wide"
               onClick={() => navigate("math")}
             >
-              {math?.solved ? "Continuă aventura" : "Hai la joacă"}
+              {math?.solved
+                ? t("home.continua-aventura")
+                : t("home.hai-la-joaca")}
               <Icon name="arrow" />
             </button>
           </article>
           <article className="challenge-card puzzle-card">
             <div className="card-top">
-              <span className="number-label">02 / PENTRU SUFLET</span>
-              <span className="pill">{puzzle?.count || 10} piese</span>
+              <span className="number-label">{t("home.02-pentru-suflet")}</span>
+              <span className="pill">
+                {puzzle?.count || 10}
+                {" " + t("home.piese")}
+              </span>
             </div>
             <div className="challenge-illustration puzzle-mini">
               <div className="polaroid">
                 <img
                   src={puzzle?.url || "/demo-photo.svg"}
-                  alt="Previzualizare puzzle"
+                  alt={t("home.previzualizare-puzzle")}
                 />
-                <span>o amintire, piesă cu piesă ♡</span>
+                <span>{t("home.o-amintire-piesa-cu-piesa")}</span>
               </div>
               <div className="puzzle-sticker">
                 <Icon name="puzzle" size={43} />
               </div>
             </div>
-            <h3>Piese de fericire</h3>
+            <h3>{t("home.piese-de-fericire")}</h3>
             <p>
-              O imagine specială, ascunsă în bucățele. Pune-le la loc și
-              descoperă povestea.
+              {t(
+                "home.o-imagine-speciala-ascunsa-in-bucatele-pune-le-la-loc-si-descoper",
+              )}
             </p>
             <Progress
               value={puzzle?.placed.length || 0}
               max={puzzle?.count || 10}
-              label="Piese la locul lor"
+              label={t("home.piese-la-locul-lor")}
             />
             <button
               className="button dark wide"
               onClick={() => navigate("puzzle")}
             >
               {puzzle?.placed.length
-                ? "Continuă povestea"
-                : "Descoperă puzzle-ul"}
+                ? t("home.continua-povestea")
+                : t("home.descopera-puzzle-ul")}
               <Icon name="arrow" />
             </button>
           </article>
@@ -281,23 +334,32 @@ function Dashboard({ settings, overview, navigate }) {
         className="journey-note"
         mood={done ? "celebrate" : "encourage"}
         title={
-          done ? "Toate lăbuțele sus! Ai reușit!" : "Pactul nostru de cavaler"
+          done
+            ? t("home.toate-labutele-sus-ai-reusit")
+            : t("home.pactul-nostru-de-cavaler")
         }
         message={
           done
-            ? "Ambele misiuni sunt gata! Îmi ridic sabia pentru tine: la mulți ani, cu iubire, aventuri și o mie de motive să zâmbești!"
-            : "Promit să țin cu tine și când răspunsul nu iese din prima. Tu promite-mi doar că îți dai voie să te bucuri."
+            ? t(
+                "home.ambele-misiuni-sunt-gata-imi-ridic-sabia-pentru-tine-la-multi-ani",
+              )
+            : t(
+                "home.promit-sa-tin-cu-tine-si-cand-raspunsul-nu-iese-din-prima-tu-prom",
+              )
         }
         detail={
           done
-            ? "Tu ești cea mai frumoasă surpriză. Miau!"
-            : "Indiciile sunt pentru ajutor, pauzele pentru încărcat superputerile. Suntem o echipă."
+            ? t("home.tu-esti-cea-mai-frumoasa-surpriza-miau")
+            : t(
+                "home.indiciile-sunt-pentru-ajutor-pauzele-pentru-incarcat-superputeril",
+              )
         }
       />
     </>
   );
 }
 function AppContent() {
+  const { t, setMessages, ready } = useMessages();
   const [user, setUser] = useState(null),
     [checking, setChecking] = useState(true),
     [settings, setSettings] = useState(null),
@@ -314,12 +376,16 @@ function AppContent() {
         api("/puzzle"),
       ]);
       setSettings(s);
-      setOverview({ math, puzzle });
+      setMessages(s.messages || {});
+      setOverview({
+        math,
+        puzzle,
+      });
       setError("");
     } catch (e) {
       setError(e.message);
     }
-  }, []);
+  }, [setMessages]);
   useEffect(() => {
     let active = true;
     api("/me")
@@ -332,7 +398,7 @@ function AppContent() {
       setUser(null);
       setSettings(null);
       setOverview(null);
-      setToast("Sesiunea a expirat. Intră din nou în cont.");
+      setToast(t("general.sesiunea-a-expirat-intra-din-nou-in-cont"));
     };
     const hash = () => setPage(useHash());
     window.addEventListener("kitty:expired", expired);
@@ -361,7 +427,10 @@ function AppContent() {
   function navigate(next) {
     setPage(next);
     window.location.hash = next;
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({
+      top: 0,
+      behavior: "instant",
+    });
   }
   function celebrate(message) {
     setBurst(Date.now());
@@ -370,7 +439,9 @@ function AppContent() {
   }
   async function logout() {
     try {
-      await api("/logout", { method: "POST" });
+      await api("/logout", {
+        method: "POST",
+      });
       setUser(null);
       setOverview(null);
       setSettings(null);
@@ -379,7 +450,7 @@ function AppContent() {
       setToast(e.message);
     }
   }
-  if (checking) return <Loading />;
+  if (checking || !ready) return <Loading />;
   if (!user)
     return (
       <>
@@ -397,10 +468,12 @@ function AppContent() {
       </>
     );
   const nav = [
-    ["home", "home", "Acasă"],
-    ["math", "matrix", "Matrici"],
-    ["puzzle", "puzzle", "Puzzle"],
-    ...(user.role === "admin" ? [["admin", "settings", "Atelier"]] : []),
+    ["home", "home", t("general.acasa")],
+    ["math", "matrix", t("general.matrici")],
+    ["puzzle", "puzzle", t("general.puzzle")],
+    ...(user.role === "admin"
+      ? [["admin", "settings", t("general.atelier")]]
+      : []),
   ];
   return (
     <>
@@ -413,17 +486,17 @@ function AppContent() {
           document.getElementById("main-content")?.scrollIntoView();
         }}
       >
-        Sari la conținut
+        {t("general.sari-la-continut")}
       </a>
       <header className="app-header">
         <button
           className="brand-button"
           onClick={() => navigate("home")}
-          aria-label="Kitty Party, acasă"
+          aria-label={t("general.kitty-party-acasa")}
         >
           <Brand />
         </button>
-        <nav aria-label="Navigare principală">
+        <nav aria-label={t("general.navigare-principala")}>
           {nav.map(([key, icon, label]) => (
             <button
               key={key}
@@ -447,14 +520,16 @@ function AppContent() {
           <span className="user-name">
             {user.displayName}
             <small>
-              {user.role === "admin" ? "organizator" : "invitata de onoare"}
+              {user.role === "admin"
+                ? t("general.organizator")
+                : t("general.invitata-de-onoare")}
             </small>
           </span>
           <button
             className="icon-button"
             onClick={logout}
-            aria-label="Ieși din cont"
-            title="Ieși din cont"
+            aria-label={t("general.iesi-din-cont")}
+            title={t("general.iesi-din-cont")}
           >
             <Icon name="logout" />
           </button>
@@ -467,7 +542,7 @@ function AppContent() {
             <Loading />
             {error && (
               <button className="button" onClick={refresh}>
-                Încearcă din nou
+                {t("general.incearca-din-nou")}
               </button>
             )}
           </>
@@ -480,6 +555,7 @@ function AppContent() {
             settings={settings}
             onSaved={(s) => {
               setSettings(s);
+              setMessages(s.messages || {});
               refresh();
             }}
             notify={setToast}
@@ -494,9 +570,12 @@ function AppContent() {
       </main>
       <footer className="app-footer">
         <Brand />
-        <span>Creat cu drag, pentru o zi care merită toată magia.</span>
         <span>
-          20 & foarte iubită <Icon name="heart" size={15} />
+          {t("general.creat-cu-drag-pentru-o-zi-care-merita-toata-magia")}
+        </span>
+        <span>
+          {t("general.20-foarte-iubita") + " "}
+          <Icon name="heart" size={15} />
         </span>
       </footer>
       <Confetti burst={burst} />
@@ -504,7 +583,7 @@ function AppContent() {
         {toast && (
           <GuideSpeech
             className="toast-guide"
-            title="Un miau pentru tine"
+            title={t("general.un-miau-pentru-tine")}
             message={toast}
             mood={burst ? "celebrate" : "welcome"}
             speak={false}
@@ -514,12 +593,13 @@ function AppContent() {
     </>
   );
 }
-
 export default function App() {
   return (
-    <>
-      <AmbientBackground />
-      <AppContent />
-    </>
+    <MessageProvider>
+      <>
+        <AmbientBackground />
+        <AppContent />
+      </>
+    </MessageProvider>
   );
 }

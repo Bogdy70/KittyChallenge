@@ -1,0 +1,258 @@
+.text-intro {
+  margin-bottom: 20px;
+}
+.text-intro p {
+  max-width: 900px;
+  margin-bottom: 10px;
+}
+.text-toolbar {
+  position: sticky;
+  top: 10px;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: end;
+  padding: 16px 20px;
+  border: 1px solid #fff9;
+  border-radius: 18px;
+  background: #d9bdf5eb;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 6px 24px #60437415;
+  margin-bottom: 24px;
+}
+.text-save {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 10px;
+  text-align: center;
+  color: #684071;
+}
+.text-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 350px);
+  gap: 24px;
+  align-items: start;
+}
+.message-fields,
+.text-preview {
+  min-width: 0;
+}
+.message-field {
+  padding: 18px 22px;
+  border-radius: 20px;
+  border: 1px solid #ffffff95;
+  background: linear-gradient(130deg, #f5cbe7d9, #d5cef6db);
+  margin-bottom: 16px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.message-field.focused {
+  border-color: #ba4b98;
+  box-shadow: 0 0 0 3px #e694c62b;
+}
+.message-field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 9px;
+}
+.message-field-top .eyebrow {
+  font-size: 8px;
+  letter-spacing: 1.2px;
+}
+.message-field-top .text-button {
+  font-size: 10px;
+  white-space: nowrap;
+}
+.message-field label {
+  overflow-wrap: anywhere;
+}
+.message-field textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+.message-variables {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 9px;
+  color: #725579;
+}
+.message-variables code {
+  border: 1px solid #a477b440;
+  background: #ffe4a6;
+  color: #714354;
+  padding: 3px 7px;
+  border-radius: 8px;
+}
+.message-variables small {
+  font-size: 9px;
+  margin-left: auto;
+}
+.text-preview {
+  position: sticky;
+  top: 125px;
+}
+.text-preview > .panel {
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.text-preview h3 {
+  font-size: 19px;
+  overflow-wrap: anywhere;
+}
+.text-preview .eyebrow {
+  font-size: 8px;
+}
+.editor-guide {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.editor-guide .guide-avatar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.editor-guide .guide-avatar .knight-cat {
+  width: 85px;
+  height: 95px;
+}
+.editor-guide .guide-bubble {
+  padding: 17px;
+}
+.editor-guide .guide-bubble:before {
+  left: 40px;
+  top: -8px;
+  border-top: 1px solid #ffffffbb;
+  border-bottom: 0;
+}
+.editor-guide .guide-dialogue strong {
+  font-size: 18px;
+}
+.text-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.text-tools h3 {
+  margin-bottom: 0;
+}
+.text-tools > small {
+  color: #725579;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.text-tools > label.button {
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+.text-tools input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.text-tools > label.button:focus-within {
+  outline: 3px solid #7252d7;
+  outline-offset: 3px;
+}
+.custom-copy-buttons {
+  display: flex;
+  gap: 4px;
+}
+.custom-copy-form {
+  width: 100%;
+  display: grid;
+  gap: 13px;
+}
+.custom-list article.editing-copy {
+  display: block;
+}
+.custom-copy-form small {
+  color: #725579;
+  line-height: 1.6;
+  font-size: 10px;
+}
+.custom-copy-form .exercise-copy-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.custom-list .custom-hint-preview {
+  margin-top: 8px;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 850px) {
+  .text-toolbar {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .text-save {
+    grid-column: 1/-1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .text-editor-grid {
+    grid-template-columns: 1fr;
+  }
+  .text-preview {
+    position: static;
+    order: -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+@media (max-width: 600px) {
+  .admin-tabs {
+    flex-wrap: wrap;
+  }
+  .admin-tabs button {
+    min-width: 65px;
+  }
+  .text-toolbar {
+    position: static;
+    padding: 15px;
+    gap: 10px;
+  }
+  .text-toolbar label {
+    font-size: 10px;
+  }
+  .text-toolbar input,
+  .text-toolbar select {
+    font-size: 11px;
+    padding: 10px;
+  }
+  .text-save {
+    flex-wrap: wrap;
+  }
+  .text-save .button {
+    padding: 10px 15px;
+    font-size: 11px;
+  }
+  .text-preview {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .message-field {
+    padding: 17px;
+  }
+  .message-field-top {
+    gap: 10px;
+  }
+  .message-field-top .eyebrow {
+    font-size: 7px;
+  }
+}

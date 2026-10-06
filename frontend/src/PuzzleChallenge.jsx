@@ -1,3 +1,4 @@
+import { useMessages } from "./Messages";
 import React, { useEffect, useRef, useState, useMemo, useId } from "react";
 import { api } from "./api";
 import { GuideSpeech } from "./Guide";
@@ -81,6 +82,7 @@ function Piece({ index, puzzle, idPrefix }) {
   );
 }
 export default function PuzzleChallenge({ celebrate, onProgress }) {
+  const { t } = useMessages();
   const [puzzle, setPuzzle] = useState(null),
     [selected, setSelected] = useState(null),
     [page, setPage] = useState(0),
@@ -90,9 +92,10 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
     [error, setError] = useState(""),
     [note, setNote] = useState(""),
     [guide, setGuide] = useState({
-      title: "O amintire de apărat, piesă cu piesă.",
-      message:
-        "Alege o piesă din cutie, apoi trage-o pe tablă sau apasă pe locul ei. Eu rămân aici, cu sabia și răbdarea pregătite!",
+      title: t("puzzle.o-amintire-de-aparat-piesa-cu-piesa"),
+      message: t(
+        "puzzle.alege-o-piesa-din-cutie-apoi-trage-o-pe-tabla-sau-apasa-pe-locul-",
+      ),
       mood: "welcome",
     }),
     [saving, setSaving] = useState(false),
@@ -128,7 +131,12 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
   const remaining = useMemo(
     () =>
       puzzle
-        ? Array.from({ length: puzzle.count }, (_, i) => i)
+        ? Array.from(
+            {
+              length: puzzle.count,
+            },
+            (_, i) => i,
+          )
             .filter((i) => !placed.has(i))
             .sort(
               (a, b) =>
@@ -149,25 +157,33 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
       .then(() =>
         api("/puzzle/progress", {
           method: "PUT",
-          body: { version: next.version, placed: next.placed },
+          body: {
+            version: next.version,
+            placed: next.placed,
+          },
         }),
       )
       .then((data) => {
         if (!mounted.current) return;
         if (seq === saveSequence.current) {
           setSaving(false);
-          setNote("Progres salvat. Pisicuța are grijă de el.");
+          setNote(t("puzzle.progres-salvat-pisicuta-are-grija-de-el"));
           onProgress();
         }
         if (data.complete && !announced.current) {
           announced.current = true;
-          celebrate("Fiecare piesă și-a găsit locul. La mulți ani!");
+          celebrate(t("puzzle.fiecare-piesa-si-a-gasit-locul-la-multi-ani"));
         }
       })
       .catch((e) => {
         if (mounted.current) {
           setError(
-            `${e.message} Piesele sunt încă aici. Apasă „Reîncearcă salvarea”.`,
+            t(
+              "puzzle.value1-piesele-sunt-inca-aici-apasa-reincearca-salvarea",
+              {
+                value1: e.message,
+              },
+            ),
           );
           setSaving(false);
         }
@@ -176,26 +192,32 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
   function place(piece, target) {
     if (piece === null || piece === undefined) return;
     if (piece !== target) {
-      setNote("Mai căutăm locul acestei piese.");
+      setNote(t("puzzle.mai-cautam-locul-acestei-piese"));
       setGuide({
-        title: "Încă puțin, mica mea aventurieră!",
-        message:
-          "Piesa aceasta își caută alt loc. Privește culorile și marginile sau cheamă-mă cu butonul „Indiciu”.",
+        title: t("puzzle.inca-putin-mica-mea-aventuriera"),
+        message: t(
+          "puzzle.piesa-aceasta-isi-cauta-alt-loc-priveste-culorile-si-marginile-sa",
+        ),
         mood: "encourage",
       });
       return;
     }
     const p = puzzleRef.current;
     if (!p || p.placed.includes(piece)) return;
-    const next = { ...p, placed: [...p.placed, piece] };
+    const next = {
+      ...p,
+      placed: [...p.placed, piece],
+    };
     puzzleRef.current = next;
     setPuzzle(next);
     setSelected(null);
     setHint(false);
-    setNote("Se potrivește perfect!");
+    setNote(t("puzzle.se-potriveste-perfect"));
     setGuide({
-      title: "Purrfect! Încă o piesă acasă.",
-      message: "Îți dau un high-five cu lăbuța! Imaginea noastră prinde viață.",
+      title: t("puzzle.purrfect-inca-o-piesa-acasa"),
+      message: t(
+        "puzzle.iti-dau-un-high-five-cu-labuta-imaginea-noastra-prinde-viata",
+      ),
       mood: "celebrate",
     });
     persist(next);
@@ -243,7 +265,9 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
   async function restart() {
     if (
       !confirm(
-        "Începi puzzle-ul de la zero? Piesele puse în acest puzzle vor reveni în cutie.",
+        t(
+          "puzzle.incepi-puzzle-ul-de-la-zero-piesele-puse-in-acest-puzzle-vor-reve",
+        ),
       )
     )
       return;
@@ -252,7 +276,9 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
       await queue.current;
       await api("/puzzle/restart", {
         method: "POST",
-        body: { version: puzzle.version },
+        body: {
+          version: puzzle.version,
+        },
       });
       setSelected(null);
       setHint(false);
@@ -260,7 +286,7 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
       announced.current = false;
       await load();
       onProgress();
-      setNote("O nouă rundă de bucurie!");
+      setNote(t("puzzle.o-noua-runda-de-bucurie"));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -273,7 +299,7 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
         <ErrorBox>{error}</ErrorBox>
         {error ? (
           <button className="button" onClick={load}>
-            Încearcă din nou
+            {t("general.incearca-din-nou")}
           </button>
         ) : (
           <Loading />
@@ -285,18 +311,23 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">PROVOCAREA 02 · BUCĂȚELE DE BUCURIE</span>
+          <span className="eyebrow">
+            {t("puzzle.provocarea-02-bucatele-de-bucurie")}
+          </span>
           <h1>
-            Piese de <span className="green-text">fericire.</span>
+            {t("puzzle.piese-de") + " "}
+            <span className="green-text">{t("puzzle.fericire")}</span>
           </h1>
           <p>
-            O amintire se construiește cu răbdare. Și cu puțin ajutor de la o
-            pisicuță.
+            {t(
+              "puzzle.o-amintire-se-construieste-cu-rabdare-si-cu-putin-ajutor-de-la-o-",
+            )}
           </p>
         </div>
         <span className="tag mint">
           <Icon name="puzzle" />
-          {puzzle.count} piese
+          {puzzle.count}
+          {" " + t("home.piese")}
         </span>
       </div>
       <section className="puzzle-workspace">
@@ -304,7 +335,7 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
           <Progress
             value={puzzle.placed.length}
             max={puzzle.count}
-            label="Imaginea prinde viață"
+            label={t("puzzle.imaginea-prinde-viata")}
           />
           <div className="toolbar-actions">
             <button
@@ -313,7 +344,7 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
               aria-pressed={preview}
             >
               <Icon name="eye" size={17} />
-              {preview ? "Ascunde modelul" : "Vezi modelul"}
+              {preview ? t("puzzle.ascunde-modelul") : t("puzzle.vezi-modelul")}
             </button>
             <button
               className="button small soft-yellow"
@@ -330,14 +361,15 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
               }}
               aria-pressed={hint}
             >
-              <Icon name="bulb" size={17} /> Indiciu
+              <Icon name="bulb" size={17} />
+              {" " + t("puzzle.indiciu")}
             </button>
             <div className="zoom-controls">
               <button
                 className="icon-button"
                 onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
                 disabled={zoom <= 0.5}
-                aria-label="Micșorează puzzle-ul"
+                aria-label={t("puzzle.micsoreaza-puzzle-ul")}
               >
                 <Icon name="minus" size={16} />
               </button>
@@ -346,7 +378,7 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
                 className="icon-button"
                 onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
                 disabled={zoom >= 3}
-                aria-label="Mărește puzzle-ul"
+                aria-label={t("puzzle.mareste-puzzle-ul")}
               >
                 <Icon name="plus" size={16} />
               </button>
@@ -356,10 +388,14 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
         <GuideSpeech
           className="puzzle-guide"
           mood={complete ? "celebrate" : guide.mood}
-          title={complete ? "Misiune îndeplinită. Sabia sus!" : guide.title}
+          title={
+            complete ? t("puzzle.misiune-indeplinita-sabia-sus") : guide.title
+          }
           message={
             complete
-              ? "Ai pus ultima piesă! Această poveste este doar pentru tine. La mulți ani!!! 20 de ani, o mie de aventuri și un cavaler care ține cu tine."
+              ? t(
+                  "puzzle.ai-pus-ultima-piesa-aceasta-poveste-este-doar-pentru-tine-la-mult",
+                )
               : guide.message
           }
         />
@@ -381,15 +417,20 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
                       puzzle.cols),
                 }}
                 viewBox={`-28 -28 ${puzzle.cols * 100 + 56} ${puzzle.rows * 100 + 56}`}
-                aria-label="Tabla puzzle-ului"
+                aria-label={t("puzzle.tabla-puzzle-ului")}
                 role="group"
               >
                 <defs>
-                  {Array.from({ length: puzzle.count }, (_, i) => (
-                    <clipPath id={`${prefix}-board-${i}`} key={i}>
-                      <path d={piecePath(i, puzzle.rows, puzzle.cols)} />
-                    </clipPath>
-                  ))}
+                  {Array.from(
+                    {
+                      length: puzzle.count,
+                    },
+                    (_, i) => (
+                      <clipPath id={`${prefix}-board-${i}`} key={i}>
+                        <path d={piecePath(i, puzzle.rows, puzzle.cols)} />
+                      </clipPath>
+                    ),
+                  )}
                 </defs>
                 <rect
                   width={puzzle.cols * 100}
@@ -406,90 +447,103 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
                     opacity=".28"
                   />
                 )}
-                {Array.from({ length: puzzle.count }, (_, i) => {
-                  const x = (i % puzzle.cols) * 100,
-                    y = Math.floor(i / puzzle.cols) * 100;
-                  return (
-                    <g
-                      key={i}
-                      transform={`translate(${x} ${y})`}
-                      role="button"
-                      tabIndex={placed.has(i) ? -1 : 0}
-                      aria-label={`Locul ${Math.floor(i / puzzle.cols) + 1}, ${(i % puzzle.cols) + 1}${placed.has(i) ? ", completat" : ""}`}
-                      onClick={() => place(selected, i)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          place(selected, i);
-                        }
-                      }}
-                      className={`puzzle-slot ${hint && selected === i ? "hint-slot" : ""} ${placed.has(i) ? "placed" : ""}`}
-                    >
-                      <path
-                        d={piecePath(i, puzzle.rows, puzzle.cols)}
-                        fill={
-                          hint && selected === i
-                            ? "#fff080"
-                            : placed.has(i)
-                              ? "transparent"
-                              : preview
+                {Array.from(
+                  {
+                    length: puzzle.count,
+                  },
+                  (_, i) => {
+                    const x = (i % puzzle.cols) * 100,
+                      y = Math.floor(i / puzzle.cols) * 100;
+                    return (
+                      <g
+                        key={i}
+                        transform={`translate(${x} ${y})`}
+                        role="button"
+                        tabIndex={placed.has(i) ? -1 : 0}
+                        aria-label={t("puzzle.locul-row-col-value3", {
+                          row: Math.floor(i / puzzle.cols) + 1,
+                          col: (i % puzzle.cols) + 1,
+                          value3: placed.has(i) ? t("puzzle.completat") : "",
+                        })}
+                        onClick={() => place(selected, i)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            place(selected, i);
+                          }
+                        }}
+                        className={`puzzle-slot ${hint && selected === i ? "hint-slot" : ""} ${placed.has(i) ? "placed" : ""}`}
+                      >
+                        <path
+                          d={piecePath(i, puzzle.rows, puzzle.cols)}
+                          fill={
+                            hint && selected === i
+                              ? "#fff080"
+                              : placed.has(i)
                                 ? "transparent"
-                                : "#e7dafa"
-                        }
-                        stroke="#d6cfe0"
-                        strokeWidth="1.3"
-                      />
-                      {placed.has(i) && (
-                        <>
-                          <image
-                            href={puzzle.url}
-                            x={-x}
-                            y={-y}
-                            width={puzzle.cols * 100}
-                            height={puzzle.rows * 100}
-                            preserveAspectRatio="none"
-                            clipPath={`url(#${prefix}-board-${i})`}
-                          />
-                          <path
-                            d={piecePath(i, puzzle.rows, puzzle.cols)}
-                            fill="none"
-                            stroke="#fff"
-                            strokeOpacity=".4"
-                            strokeWidth=".8"
-                          />
-                        </>
-                      )}
-                      {!placed.has(i) && hint && selected === i && (
-                        <text
-                          x="50"
-                          y="58"
-                          textAnchor="middle"
-                          fill="#685325"
-                          fontSize="26"
-                        >
-                          ♡
-                        </text>
-                      )}
-                    </g>
-                  );
-                })}
+                                : preview
+                                  ? "transparent"
+                                  : "#e7dafa"
+                          }
+                          stroke="#d6cfe0"
+                          strokeWidth="1.3"
+                        />
+                        {placed.has(i) && (
+                          <>
+                            <image
+                              href={puzzle.url}
+                              x={-x}
+                              y={-y}
+                              width={puzzle.cols * 100}
+                              height={puzzle.rows * 100}
+                              preserveAspectRatio="none"
+                              clipPath={`url(#${prefix}-board-${i})`}
+                            />
+                            <path
+                              d={piecePath(i, puzzle.rows, puzzle.cols)}
+                              fill="none"
+                              stroke="#fff"
+                              strokeOpacity=".4"
+                              strokeWidth=".8"
+                            />
+                          </>
+                        )}
+                        {!placed.has(i) && hint && selected === i && (
+                          <text
+                            x="50"
+                            y="58"
+                            textAnchor="middle"
+                            fill="#685325"
+                            fontSize="26"
+                          >
+                            ♡
+                          </text>
+                        )}
+                      </g>
+                    );
+                  },
+                )}
               </svg>
             </div>
           </div>
           <aside className="puzzle-side">
             <div className="mini-preview">
-              <img src={puzzle.url} alt="Imaginea pe care o vei reconstitui" />
+              <img
+                src={puzzle.url}
+                alt={t("puzzle.imaginea-pe-care-o-vei-reconstitui")}
+              />
             </div>
-            <span className="eyebrow">GHID DE BUZUNAR</span>
-            <h3>Găsește-i locul.</h3>
+            <span className="eyebrow">{t("puzzle.ghid-de-buzunar")}</span>
+            <h3>{t("puzzle.gaseste-i-locul")}</h3>
             <ol>
-              <li>Alege o piesă din cutie.</li>
-              <li>Trage-o pe tablă sau apasă pe locul ei.</li>
-              <li>Folosește zoom pentru detalii.</li>
+              <li>{t("puzzle.alege-o-piesa-din-cutie")}</li>
+              <li>{t("puzzle.trage-o-pe-tabla-sau-apasa-pe-locul-ei")}</li>
+              <li>{t("puzzle.foloseste-zoom-pentru-detalii")}</li>
             </ol>
             <p className="muted small-text">
-              Cu tastatura: Tab selectează, Enter alege piesa sau locul. Piesele
-              se fixează doar în poziția corectă.
+              {t(
+                "puzzle.cu-tastatura-tab-selecteaza-enter-alege-piesa-sau-locul-piesele-s",
+              )}
             </p>
             {selected !== null ? (
               <div className="selected-preview">
@@ -498,11 +552,11 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
                   puzzle={puzzle}
                   idPrefix={`${prefix}-selected`}
                 />
-                <span>Piesa aleasă</span>
+                <span>{t("puzzle.piesa-aleasa")}</span>
               </div>
             ) : (
               <div className="puzzle-side-note">
-                ✦ Cavalerul Miau veghează deasupra tablei.
+                {t("puzzle.cavalerul-miau-vegheaza-deasupra-tablei")}
               </div>
             )}
           </aside>
@@ -511,15 +565,16 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
           <span>
             <span className={`live-dot ${saving ? "saving" : ""}`} />
             {saving
-              ? "Salvăm progresul…"
-              : note || "Alege o piesă. Povestea începe aici."}
+              ? t("puzzle.salvam-progresul")
+              : note || t("puzzle.alege-o-piesa-povestea-incepe-aici")}
           </span>
           <button
             className="text-button"
             onClick={restart}
             disabled={busy || saving}
           >
-            <Icon name="refresh" size={15} /> De la început
+            <Icon name="refresh" size={15} />
+            {" " + t("puzzle.de-la-inceput")}
           </button>
         </div>
         <ErrorBox>{error}</ErrorBox>
@@ -529,19 +584,26 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
             disabled={saving}
             onClick={() => persist(puzzleRef.current)}
           >
-            Reîncearcă salvarea
+            {t("puzzle.reincearca-salvarea")}
           </button>
         )}
         <div className="piece-tray">
           <div className="section-title">
             <div>
               <h3>
-                {complete ? "Toate piesele sunt acasă." : "Cutia cu piese"}
+                {complete
+                  ? t("puzzle.toate-piesele-sunt-acasa")
+                  : t("puzzle.cutia-cu-piese")}
               </h3>
               <p>
                 {complete
-                  ? "Și imaginea este la fel de specială ca tine."
-                  : `${remaining.length} piese își caută locul. Selectează sau trage o piesă.`}
+                  ? t("puzzle.si-imaginea-este-la-fel-de-speciala-ca-tine")
+                  : t(
+                      "puzzle.remaining-piese-isi-cauta-locul-selecteaza-sau-trage-o-piesa",
+                      {
+                        remaining: remaining.length,
+                      },
+                    )}
               </p>
             </div>
             <button
@@ -552,7 +614,8 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
               }}
               disabled={complete}
             >
-              <Icon name="refresh" size={16} /> Amestecă
+              <Icon name="refresh" size={16} />
+              {" " + t("puzzle.amesteca")}
             </button>
           </div>
           <div className="tray-grid">
@@ -562,7 +625,9 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
                 <button
                   key={i}
                   className={`tray-piece ${selected === i ? "selected" : ""}`}
-                  aria-label={`Alege piesa ${i + 1}`}
+                  aria-label={t("puzzle.alege-piesa-value1", {
+                    value1: i + 1,
+                  })}
                   aria-pressed={selected === i}
                   onClick={() => {
                     setSelected(i);
@@ -603,17 +668,21 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
                 disabled={currentPage === 0}
                 onClick={() => setPage(currentPage - 1)}
               >
-                Înapoi
+                {t("puzzle.inapoi")}
               </button>
               <span>
-                Cutia {currentPage + 1} din {pages}
+                {t("puzzle.cutia") + " "}
+                {currentPage + 1}
+                {" " + t("puzzle.din") + " "}
+                {pages}
               </span>
               <button
                 className="button small"
                 disabled={currentPage >= pages - 1}
                 onClick={() => setPage(currentPage + 1)}
               >
-                Mai multe piese <Icon name="arrow" size={15} />
+                {t("puzzle.mai-multe-piese") + " "}
+                <Icon name="arrow" size={15} />
               </button>
             </div>
           )}
@@ -623,10 +692,11 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
         <section className="completion-banner">
           <Icon name="heart" size={36} />
           <div>
-            <h2>Ce frumos se leagă lucrurile!</h2>
+            <h2>{t("puzzle.ce-frumos-se-leaga-lucrurile")}</h2>
             <p>
-              Ai pus ultima piesă. Această mică poveste este doar pentru tine.
-              La mulți ani!!!
+              {t(
+                "puzzle.ai-pus-ultima-piesa-aceasta-mica-poveste-este-doar-pentru-tine-la",
+              )}
             </p>
           </div>
         </section>
@@ -634,7 +704,10 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
       {drag?.moved && (
         <div
           className="drag-piece"
-          style={{ left: drag.x - 45, top: drag.y - 45 }}
+          style={{
+            left: drag.x - 45,
+            top: drag.y - 45,
+          }}
         >
           <Piece
             index={drag.index}

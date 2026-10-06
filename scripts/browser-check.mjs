@@ -354,9 +354,131 @@ try {
     fullPage: true,
   });
   await overflow();
+  // Admin copy editing, import/export, literal HTML, and persisted player-facing copy.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.getByRole("button", { name: "Atelier", exact: true }).click();
+  await page.getByRole("tab", { name: "Exercițiile" }).click();
+  await page
+    .getByRole("button", { name: "Editează textele: Exercițiul nostru" })
+    .click();
+  await page
+    .getByLabel("Indiciul acestei provocări")
+    .fill("Un indiciu nou, doar pentru noi.");
+  await page
+    .getByRole("button", { name: "Salvează titlul și indiciul" })
+    .click();
+  await page
+    .getByText("Un indiciu nou, doar pentru noi.", { exact: true })
+    .waitFor();
+  await page.getByRole("tab", { name: "Textele", exact: true }).click();
+  await page.getByRole("heading", { name: "Vocea petrecerii." }).waitFor();
+  await page
+    .getByLabel("Numele ghidului", { exact: true })
+    .fill("Sir Mustăcilă");
+  await page.getByLabel("Categoria", { exact: true }).selectOption("hints");
+  await page
+    .locator('[id="copy-hint.add"]')
+    .fill("Două lăbuțe adună fiecare pereche de căsuțe.");
+  await page.getByLabel("Categoria", { exact: true }).selectOption("math");
+  await page
+    .locator('[id="copy-math.correct"]')
+    .fill("Victorie! {guide} e mândru de tine. <b>Bravo!</b>");
+  assert.equal(
+    await page.locator(".editor-guide .guide-dialogue b").count(),
+    0,
+    "message HTML is rendered as text",
+  );
+  await page.getByLabel("Categoria", { exact: true }).selectOption("login");
+  await page.locator('[id="copy-login.hei-sarbatorito"]').fill("Hei, Luna");
+  await page
+    .getByRole("button", { name: "Salvează textele", exact: true })
+    .click();
+  await page
+    .getByText("Textele au fost salvate. Cavalerul și-a învățat replicile noi!")
+    .waitFor();
+  const downloadWait = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exportă textele" }).click();
+  const download = await downloadWait,
+    stream = await download.createReadStream(),
+    parts = [];
+  for await (const chunk of stream) parts.push(chunk);
+  const exported = JSON.parse(Buffer.concat(parts).toString());
+  assert.equal(exported.messages["guide.name"], "Sir Mustăcilă");
+  exported.messages["exercise.title.0"] = "Prima misiune a Lunei";
+  await page.getByLabel("Importă texte JSON", { exact: true }).setInputFiles({
+    name: "mesaje.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(exported)),
+  });
+  await page.getByLabel("Categoria", { exact: true }).selectOption("guide");
+  await page
+    .getByRole("button", { name: "Salvează textele", exact: true })
+    .click();
+  await page.getByText("Toate textele sunt salvate", { exact: true }).waitFor();
+  await page.locator(".toast-guide").waitFor({ state: "hidden" });
+  await page.screenshot({
+    path: join(out, "12-text-editor-desktop.png"),
+    fullPage: true,
+  });
+  await overflow();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: join(out, "13-text-editor-mobile.png"),
+    fullPage: true,
+  });
+  await overflow();
+  await page.getByLabel("Caută un text", { exact: true }).fill("Vocea română");
+  assert.equal(await page.locator(".message-field").count(), 1);
+  await page.getByRole("button", { name: "Matrici", exact: true }).click();
+  await page.getByRole("heading", { name: "Prima misiune a Lunei" }).waitFor();
+  await page.getByRole("button", { name: "Un indiciu", exact: true }).click();
+  await page
+    .getByText("Două lăbuțe adună fiecare pereche de căsuțe.", { exact: true })
+    .waitFor();
+  const updatedRun = await page.evaluate(() =>
+    fetch("/api/math").then((r) => r.json()),
+  );
+  const expected = solve(updatedRun.exercises[0]);
+  for (let i = 0; i < expected.length; i++)
+    for (let j = 0; j < expected[i].length; j++)
+      await page
+        .getByLabel("Rezultat, rândul " + (i + 1) + ", coloana " + (j + 1), {
+          exact: true,
+        })
+        .fill(expected[i][j]);
+  await page.getByRole("button", { name: "Verifică răspunsul" }).click();
+  await page
+    .getByText("Victorie! Sir Mustăcilă e mândru de tine. <b>Bravo!</b>", {
+      exact: true,
+    })
+    .waitFor();
+  await page.reload();
+  await page.getByRole("button", { name: "Matrici", exact: true }).click();
+  await page.locator(".exercise-nav").first().waitFor();
+  const persistedCopyRun = await page.evaluate(() =>
+    fetch("/api/math").then((r) => r.json()),
+  );
+  assert.equal(persistedCopyRun.exercises[0].solved, true);
+  await page.locator(".exercise-nav").first().click();
+  await page.getByRole("heading", { name: "Prima misiune a Lunei" }).waitFor();
+  await page.getByRole("button", { name: "Ieși din cont" }).click();
+  await page.getByRole("heading", { name: "Hei, Luna!" }).waitFor();
+  await page.getByLabel("Nume de utilizator").fill("sarbatorita");
+  await page
+    .getByLabel("Parolă", { exact: true })
+    .fill("browser-player-password");
+  await page.getByRole("button", { name: "Să înceapă surpriza" }).click();
+  await page
+    .locator(".welcome-guide")
+    .getByText(/Eu sunt Sir Mustăcilă/)
+    .waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: "Atelier", exact: true }).count(),
+    0,
+  );
   assert.deepEqual(errors, [], "no browser runtime errors");
   console.log(
-    "Browser checks passed: login, matrix completion, hints, puzzle placement/persistence, mobile layouts, admin settings/photo/exercise, 500 pieces.",
+    "Browser checks passed: login, matrix completion, hints, puzzle placement/persistence, mobile layouts, admin settings/photo/exercise, 500 pieces, editable messages and JSON import/export.",
   );
 } catch (e) {
   if (page)

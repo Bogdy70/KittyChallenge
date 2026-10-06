@@ -1,3 +1,4 @@
+import { renderMessage } from "../shared/messages.mjs";
 export const OPERATIONS = {
   add: "Adunare",
   subtract: "Scădere",
@@ -135,48 +136,24 @@ export function validateExercise(e) {
     throw new Error("Scalarul trebuie să fie un întreg între −9 și 9.");
   return true;
 }
-export function explanation(e) {
-  const a = e.a;
-  const common = {
-    add: "Adună numerele aflate pe aceeași poziție. Rândul 1, coloana 1 se întâlnește cu rândul 1, coloana 1.",
-    subtract:
-      "Scade fiecare element din B din elementul de pe aceeași poziție din A. Atenție: minus cu minus devine plus!",
-    scale: `Înmulțește fiecare număr din matrice cu ${e.scalar}. Nu lăsa nicio căsuță în urmă!`,
-    transpose:
-      "Rândurile devin coloane. Elementul de pe poziția (i, j) ajunge pe poziția (j, i).",
-    multiply:
-      "Pentru fiecare căsuță: înmulțește, pe rând, elementele unui rând din A cu cele ale unei coloane din B, apoi adună produsele.",
-    determinant:
-      a.length === 2
-        ? `Pentru o matrice 2 × 2: ad − bc. Aici: (${a[0][0]}) × (${a[1][1]}) − (${a[0][1]}) × (${a[1][0]}) = ${det(a)}.`
-        : "Dezvoltă după primul rând: a₁₁·M₁₁ − a₁₂·M₁₂ + a₁₃·M₁₃. Fiecare minor este determinantul matricei 2 × 2 obținute eliminând rândul și coloana elementului.",
-    inverse:
-      a.length === 2
-        ? `Calculează det(A) = ${det(a)}. Schimbă între ele elementele de pe diagonala principală, schimbă semnul celorlalte două, apoi împarte toate elementele la ${det(a)}.`
-        : `Calculează det(A) = ${det(a)}. Formează matricea cofactorilor, transpune-o și împarte fiecare element la ${det(a)}.`,
-  };
-  return common[e.op];
+function exerciseCopy(e, kind, messages) {
+  const operation = ["determinant", "inverse"].includes(e.op)
+    ? e.op + e.a.length
+    : e.op;
+  return renderMessage(messages, kind + "." + operation, {
+    scalar: e.scalar,
+    determinant: det(e.a),
+    a11: e.a[0]?.[0],
+    a12: e.a[0]?.[1],
+    a21: e.a[1]?.[0],
+    a22: e.a[1]?.[1],
+  });
 }
-export function hint(e) {
-  return (
-    e.hint ||
-    {
-      add: "Lucrează căsuță cu căsuță: Aᵢⱼ + Bᵢⱼ.",
-      subtract: "Scazi pozițiile corespunzătoare. De exemplu, 2 − (−1) = 3.",
-      scale: "Numărul din față se înmulțește cu TOATE elementele.",
-      transpose:
-        "Imaginează-ți că reflectezi matricea în diagonala principală.",
-      multiply: "Rând din A × coloană din B. Adună produsele obținute.",
-      determinant:
-        e.a.length === 2
-          ? "Diagonala principală minus diagonala secundară: ad − bc."
-          : "Dezvoltă după primul rând, cu semnele +, −, +.",
-      inverse:
-        e.a.length === 2
-          ? "Mai întâi determinantul. Apoi [[d, −b], [−c, a]] împărțit la determinant."
-          : "Folosește transpusa matricei cofactorilor, împărțită la determinant.",
-    }[e.op]
-  );
+export function explanation(e, messages = {}) {
+  return exerciseCopy(e, "explanation", messages);
+}
+export function hint(e, messages = {}) {
+  return e.hint || exerciseCopy(e, "hint", messages);
 }
 export function grade(e, answer) {
   const expected = solve(e);
@@ -273,11 +250,13 @@ export function generate(level = "easy", seed = Date.now()) {
     return e;
   });
 }
-export function publicExercise(e, state = {}) {
+export function publicExercise(e, state = {}, messages = {}) {
   const answer = solve(e);
   return {
     id: e.id,
-    title: e.title,
+    title: /^g-\d+$/.test(e.id)
+      ? renderMessage(messages, "exercise.title." + e.id.slice(2))
+      : e.title,
     op: e.op,
     a: e.a,
     b: e.b,

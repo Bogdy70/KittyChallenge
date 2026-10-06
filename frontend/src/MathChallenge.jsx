@@ -1,3 +1,4 @@
+import { useMessages } from "./Messages";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import { api } from "./api";
 import { KnightCat, GuideSpeech } from "./Guide";
@@ -53,8 +54,13 @@ export function Matrix({
     </div>
   );
 }
-const symbols = { add: "+", subtract: "−", multiply: "×" };
+const symbols = {
+  add: "+",
+  subtract: "−",
+  multiply: "×",
+};
 export default function MathChallenge({ celebrate, onProgress }) {
+  const { t } = useMessages();
   const [run, setRun] = useState(null),
     [index, setIndex] = useState(0),
     [answer, setAnswer] = useState([]),
@@ -86,8 +92,11 @@ export default function MathChallenge({ celebrate, onProgress }) {
   useLayoutEffect(() => {
     if (exercise) {
       setAnswer(
-        Array.from({ length: exercise.rows }, () =>
-          Array(exercise.cols).fill(""),
+        Array.from(
+          {
+            length: exercise.rows,
+          },
+          () => Array(exercise.cols).fill(""),
         ),
       );
       setResult(null);
@@ -103,7 +112,10 @@ export default function MathChallenge({ celebrate, onProgress }) {
     try {
       const data = await api(`/math/${exercise.id}/${kind}`, {
         method: "POST",
-        body: { answer, runId: run.id },
+        body: {
+          answer,
+          runId: run.id,
+        },
       });
       setRun((r) => ({
         ...r,
@@ -114,17 +126,18 @@ export default function MathChallenge({ celebrate, onProgress }) {
       }));
       if (kind === "hint")
         setDialogue({
-          title: "O șoaptă de la pisicuță",
+          title: t("math.o-soapta-de-la-pisicuta"),
           message: data.hint,
           mood: "thinking",
         });
       if (kind === "solution") {
         setSolution(data);
         setDialogue({
-          title: "Desfacem misterul împreună.",
+          title: t("math.desfacem-misterul-impreuna"),
           message: data.explanation,
-          detail:
-            "Soluția este mai jos. Poți încerca din nou, fără penalizări!",
+          detail: t(
+            "math.solutia-este-mai-jos-poti-incerca-din-nou-fara-penalizari",
+          ),
           mood: "thinking",
         });
       }
@@ -133,16 +146,18 @@ export default function MathChallenge({ celebrate, onProgress }) {
         setDialogue({
           title: data.message,
           message: data.correct
-            ? "Îmi ridic sabia pentru tine! Ai făcut încă un pas înainte."
-            : "Nu-i nimic, curajoaso! Căsuțele colorate îți arată ce mai trebuie revăzut. Încercăm împreună?",
+            ? t("math.imi-ridic-sabia-pentru-tine-ai-facut-inca-un-pas-inainte")
+            : t(
+                "math.nu-i-nimic-curajoaso-casutele-colorate-iti-arata-ce-mai-trebuie-r",
+              ),
           detail: data.explanation,
           mood: data.correct ? "celebrate" : "encourage",
         });
         if (data.correct) {
           celebrate(
             data.solved === run.exercises.length
-              ? "Toate matricile au spus miau! Ai terminat!"
-              : "Purrfect! Încă o mică victorie.",
+              ? t("math.toate-matricile-au-spus-miau-ai-terminat")
+              : t("math.purrfect-inca-o-mica-victorie"),
           );
         } else onProgress();
       }
@@ -154,12 +169,18 @@ export default function MathChallenge({ celebrate, onProgress }) {
   }
   async function restart() {
     if (
-      !confirm("Generezi un set nou? Progresul setului curent va fi înlocuit.")
+      !confirm(
+        t("math.generezi-un-set-nou-progresul-setului-curent-va-fi-inlocuit"),
+      )
     )
       return;
     setBusy(true);
     try {
-      setRun(await api("/math/restart", { method: "POST" }));
+      setRun(
+        await api("/math/restart", {
+          method: "POST",
+        }),
+      );
       setIndex(0);
       onProgress();
     } catch (e) {
@@ -174,7 +195,7 @@ export default function MathChallenge({ celebrate, onProgress }) {
         <ErrorBox>{error}</ErrorBox>
         {error ? (
           <button className="button" onClick={load}>
-            Încearcă din nou
+            {t("general.incearca-din-nou")}
           </button>
         ) : (
           <Loading />
@@ -185,11 +206,18 @@ export default function MathChallenge({ celebrate, onProgress }) {
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">PROVOCAREA 01 · MICI VICTORII</span>
+          <span className="eyebrow">
+            {t("math.provocarea-01-mici-victorii")}
+          </span>
           <h1>
-            Matrici <span className="pink">& mustăți.</span>
+            {t("general.matrici") + " "}
+            <span className="pink">{t("math.mustati")}</span>
           </h1>
-          <p>Ia-le pe rând. Gândește cu voce tare. Pisicuța nu te judecă.</p>
+          <p>
+            {t(
+              "math.ia-le-pe-rand-gandeste-cu-voce-tare-pisicuta-nu-te-judeca",
+            )}
+          </p>
         </div>
         <span className="tag lavender">
           <Icon name="spark" />
@@ -201,7 +229,7 @@ export default function MathChallenge({ celebrate, onProgress }) {
           <Progress
             value={run.solved}
             max={run.exercises.length}
-            label="Aventura ta"
+            label={t("math.aventura-ta")}
           />
           <nav aria-label="Exerciții">
             {run.exercises.map((e, i) => (
@@ -223,10 +251,10 @@ export default function MathChallenge({ celebrate, onProgress }) {
                   {OPERATIONS[e.op]}
                   <small>
                     {e.solved
-                      ? "Rezolvat. Bravo!"
+                      ? t("math.rezolvat-bravo")
                       : e.revealed
-                        ? "Soluție consultată"
-                        : "Un nou mic miau"}
+                        ? t("math.solutie-consultata")
+                        : t("math.un-nou-mic-miau")}
                   </small>
                 </span>
                 {i === index && <Icon name="arrow" size={17} />}
@@ -236,37 +264,56 @@ export default function MathChallenge({ celebrate, onProgress }) {
           <div className="sidebar-cat">
             <KnightCat mood="thinking" />
             <p>
-              „Ai voie să greșești.
+              {t("math.ai-voie-sa-gresesti")}
               <br />
-              Așa se învață, miau!”
+              {t("math.asa-se-invata-miau")}
             </p>
           </div>
           <button className="text-button" onClick={restart} disabled={busy}>
-            <Icon name="refresh" size={16} /> Vreau un set nou
+            <Icon name="refresh" size={16} />
+            {" " + t("math.vreau-un-set-nou")}
           </button>
         </aside>
         <section className="exercise-panel" aria-busy={busy}>
           <div className="card-top">
             <span className="number-label">
-              EXERCIȚIUL {String(index + 1).padStart(2, "0")}
+              {t("math.exercitiul") + " "}
+              {String(index + 1).padStart(2, "0")}
             </span>
             <span className={`pill ${exercise.solved ? "mint" : ""}`}>
               {exercise.solved
-                ? "✓ Rezolvat"
-                : `${index + 1} din ${run.exercises.length}`}
+                ? t("math.rezolvat")
+                : t("math.value1-din-value2", {
+                    value1: index + 1,
+                    value2: run.exercises.length,
+                  })}
             </span>
           </div>
           <h2>{exercise.title}</h2>
           <p className="exercise-instruction">
             {exercise.op === "transpose"
-              ? "Transformă rândurile în coloane. Care este transpusa lui A?"
+              ? t(
+                  "math.transforma-randurile-in-coloane-care-este-transpusa-lui-a",
+                )
               : exercise.op === "determinant"
-                ? "Un singur număr, o mică superputere. Calculează det(A)."
+                ? t("math.un-singur-numar-o-mica-superputere-calculeaza-det-a")
                 : exercise.op === "inverse"
-                  ? "Găsește matricea inversă A⁻¹. Poți scrie fracții, de exemplu 1/2."
+                  ? t(
+                      "math.gaseste-matricea-inversa-a-poti-scrie-fractii-de-exemplu-1-2",
+                    )
                   : exercise.op === "scale"
-                    ? `Înmulțește fiecare element al matricei A cu ${exercise.scalar}.`
-                    : `Calculează A ${symbols[exercise.op]} B și completează rezultatul.`}
+                    ? t(
+                        "math.inmulteste-fiecare-element-al-matricei-a-cu-scalar",
+                        {
+                          scalar: exercise.scalar,
+                        },
+                      )
+                    : t(
+                        "math.calculeaza-a-value1-b-si-completeaza-rezultatul",
+                        {
+                          value1: symbols[exercise.op],
+                        },
+                      )}
           </p>
           <div className="matrix-problem">
             {exercise.op === "scale" && (
@@ -297,13 +344,15 @@ export default function MathChallenge({ celebrate, onProgress }) {
           >
             <div className="answer-section">
               <div>
-                <h3>Răspunsul tău</h3>
+                <h3>{t("math.raspunsul-tau")}</h3>
                 <p>
                   {exercise.rows === 1 && exercise.cols === 1
-                    ? "O căsuță. Un răspuns."
-                    : "Câte o căsuță, câte un pas înainte."}
+                    ? t("math.o-casuta-un-raspuns")
+                    : t("math.cate-o-casuta-cate-un-pas-inainte")}
                   <br />
-                  <small>Acceptăm întregi, zecimale și fracții.</small>
+                  <small>
+                    {t("math.acceptam-intregi-zecimale-si-fractii")}
+                  </small>
                 </p>
               </div>
               <Matrix
@@ -324,15 +373,19 @@ export default function MathChallenge({ celebrate, onProgress }) {
             <ErrorBox>{error}</ErrorBox>
             <GuideSpeech
               className="math-guide"
-              title={dialogue?.title || "Sabia sus, mustățile pregătite!"}
+              title={dialogue?.title || t("math.sabia-sus-mustatile-pregatite")}
               message={
                 dialogue?.message ||
-                "Numerele par curajoase, dar le luăm pe rând. Completează căsuțele, iar eu verific răspunsul alături de tine."
+                t(
+                  "math.numerele-par-curajoase-dar-le-luam-pe-rand-completeaza-casutele-i",
+                )
               }
               detail={
                 dialogue?.detail ||
                 (!dialogue
-                  ? "Ai nevoie de ajutor? Apasă „Un indiciu” și îți șoptesc primul pas."
+                  ? t(
+                      "math.ai-nevoie-de-ajutor-apasa-un-indiciu-si-iti-soptesc-primul-pas",
+                    )
                   : undefined)
               }
               mood={dialogue?.mood || "welcome"}
@@ -344,7 +397,7 @@ export default function MathChallenge({ celebrate, onProgress }) {
                   busy || answer.some((r) => r.some((v) => !String(v).trim()))
                 }
               >
-                {busy ? "Un moment…" : "Verifică răspunsul"}
+                {busy ? t("math.un-moment") : t("math.verifica-raspunsul")}
                 <Icon name="check" />
               </button>
               <button
@@ -353,7 +406,8 @@ export default function MathChallenge({ celebrate, onProgress }) {
                 disabled={busy}
                 onClick={() => action("hint")}
               >
-                <Icon name="bulb" /> Un indiciu
+                <Icon name="bulb" />
+                {" " + t("math.un-indiciu")}
               </button>
               <button
                 className="text-button"
@@ -361,31 +415,38 @@ export default function MathChallenge({ celebrate, onProgress }) {
                 disabled={busy}
                 onClick={() => action("solution")}
               >
-                <Icon name="eye" size={17} /> Arată soluția
+                <Icon name="eye" size={17} />
+                {" " + t("math.arata-solutia")}
               </button>
             </div>
           </form>
           {solution && (
             <div className="solution-box">
-              <h3>Hai să înțelegem împreună.</h3>
+              <h3>{t("math.hai-sa-intelegem-impreuna")}</h3>
               <Matrix values={solution.answer} label="Soluție" />
               <small>
-                Poți completa răspunsul și încerca din nou. Fără penalizări.
+                {t(
+                  "math.poti-completa-raspunsul-si-incerca-din-nou-fara-penalizari",
+                )}
               </small>
             </div>
           )}
           <div className="exercise-bottom">
             <span>
               {exercise.attempts
-                ? `${exercise.attempts} ${exercise.attempts === 1 ? "încercare" : "încercări"} · fiecare contează`
-                : "Fără cronometru. Fără presiune."}
+                ? t("math.attempts-value2-fiecare-conteaza", {
+                    attempts: exercise.attempts,
+                    value2: exercise.attempts === 1 ? "încercare" : "încercări",
+                  })
+                : t("math.fara-cronometru-fara-presiune")}
             </span>
             <button
               className="text-button"
               disabled={index === run.exercises.length - 1 || busy}
               onClick={() => setIndex(index + 1)}
             >
-              Următorul <Icon name="arrow" size={17} />
+              {t("math.urmatorul") + " "}
+              <Icon name="arrow" size={17} />
             </button>
           </div>
         </section>
@@ -394,10 +455,11 @@ export default function MathChallenge({ celebrate, onProgress }) {
         <section className="completion-banner">
           <Icon name="trophy" size={35} />
           <div>
-            <h2>Minte sclipitoare, misiune îndeplinită!</h2>
+            <h2>{t("math.minte-sclipitoare-misiune-indeplinita")}</h2>
             <p>
-              Toate exercițiile sunt rezolvate. Pisicuțele îți trimit o rundă de
-              aplauze.
+              {t(
+                "math.toate-exercitiile-sunt-rezolvate-pisicutele-iti-trimit-o-runda-de",
+              )}
             </p>
           </div>
         </section>

@@ -1,3 +1,4 @@
+import TextEditor from "./TextEditor";
 import React, { useEffect, useState } from "react";
 import { api } from "./api";
 import { Icon, ErrorBox, Cat } from "./Art";
@@ -36,6 +37,7 @@ export default function Admin({ settings, onSaved, notify }) {
     }),
     [exercise, setExercise] = useState(initial),
     [list, setList] = useState([]),
+    [copyEditing, setCopyEditing] = useState(null),
     [progress, setProgress] = useState([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -177,6 +179,26 @@ export default function Admin({ settings, onSaved, notify }) {
       setBusy(false);
     }
   }
+  async function saveExerciseCopy(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await api("/admin/exercises/" + copyEditing.id, {
+        method: "PATCH",
+        body: { title: copyEditing.title, hint: copyEditing.hint },
+      });
+      setCopyEditing(null);
+      await refresh();
+      notify(
+        "Titlul și indiciul au fost actualizate, inclusiv în seturile începute.",
+      );
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function remove(id) {
     if (!confirm("Elimini exercițiul din seturile viitoare?")) return;
     setBusy(true);
@@ -210,14 +232,15 @@ export default function Admin({ settings, onSaved, notify }) {
           if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key))
             return;
           e.preventDefault();
-          const ids = ["party", "exercises", "progress"];
+          const ids = ["party", "exercises", "texts", "progress"];
           const current = ids.indexOf(tab);
           const next =
             e.key === "Home"
               ? 0
               : e.key === "End"
-                ? 2
-                : (current + (e.key === "ArrowRight" ? 1 : 2)) % 3;
+                ? ids.length - 1
+                : (current + (e.key === "ArrowRight" ? 1 : ids.length - 1)) %
+                  ids.length;
           setTab(ids[next]);
           document.getElementById(`tab-${ids[next]}`)?.focus();
         }}
@@ -227,6 +250,7 @@ export default function Admin({ settings, onSaved, notify }) {
         {[
           ["party", "Petrecerea", "heart"],
           ["exercises", "Exercițiile", "matrix"],
+          ["texts", "Textele", "spark"],
           ["progress", "Progresul", "trophy"],
         ].map(([id, label, icon]) => (
           <button
@@ -495,26 +519,108 @@ export default function Admin({ settings, onSaved, notify }) {
             ) : (
               <div className="custom-list">
                 {list.map((e) => (
-                  <article key={e.id}>
-                    <div>
-                      <strong>{e.title}</strong>
-                      <p>
-                        {OPERATIONS[e.op]} · {e.a.length} × {e.a[0].length}
-                      </p>
-                    </div>
-                    <button
-                      className="icon-button danger-text"
-                      disabled={busy}
-                      onClick={() => remove(e.id)}
-                      aria-label={`Elimină ${e.title}`}
-                    >
-                      <Icon name="trash" />
-                    </button>
+                  <article
+                    key={e.id}
+                    className={copyEditing?.id === e.id ? "editing-copy" : ""}
+                  >
+                    {copyEditing?.id === e.id ? (
+                      <form
+                        className="custom-copy-form"
+                        onSubmit={saveExerciseCopy}
+                      >
+                        <label>
+                          Titlul acestei provocări
+                          <input
+                            value={copyEditing.title}
+                            required
+                            maxLength={100}
+                            onChange={(event) =>
+                              setCopyEditing((c) => ({
+                                ...c,
+                                title: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                        <label>
+                          Indiciul acestei provocări
+                          <textarea
+                            rows={3}
+                            aria-label="Indiciul acestei provocări"
+                            maxLength={500}
+                            value={copyEditing.hint}
+                            onChange={(event) =>
+                              setCopyEditing((c) => ({
+                                ...c,
+                                hint: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                        <div className="exercise-copy-actions">
+                          <button className="button small dark" disabled={busy}>
+                            Salvează titlul și indiciul
+                          </button>
+                          <button
+                            className="text-button"
+                            type="button"
+                            disabled={busy}
+                            onClick={() => setCopyEditing(null)}
+                          >
+                            Anulează
+                          </button>
+                        </div>
+                        <small>
+                          Numerele și progresul rămân aceleași. Un indiciu gol
+                          folosește textul general al operației.
+                        </small>
+                      </form>
+                    ) : (
+                      <>
+                        <div>
+                          <strong>{e.title}</strong>
+                          <p>
+                            {OPERATIONS[e.op]} · {e.a.length} × {e.a[0].length}
+                          </p>
+                          {e.hint && (
+                            <p className="custom-hint-preview">{e.hint}</p>
+                          )}
+                        </div>
+                        <div className="custom-copy-buttons">
+                          <button
+                            className="icon-button"
+                            disabled={busy}
+                            onClick={() =>
+                              setCopyEditing({
+                                id: e.id,
+                                title: e.title,
+                                hint: e.hint || "",
+                              })
+                            }
+                            aria-label={`Editează textele: ${e.title}`}
+                          >
+                            <Icon name="settings" />
+                          </button>
+                          <button
+                            className="icon-button danger-text"
+                            disabled={busy}
+                            onClick={() => remove(e.id)}
+                            aria-label={`Elimină ${e.title}`}
+                          >
+                            <Icon name="trash" />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </article>
                 ))}
               </div>
             )}
           </section>
+        </div>
+      ) : tab === "texts" ? (
+        <div role="tabpanel" id="panel-texts" aria-labelledby="tab-texts">
+          <TextEditor onSaved={onSaved} notify={notify} />
         </div>
       ) : (
         <section

@@ -9,6 +9,7 @@ WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3001
 COPY --from=build /app/dist ./dist
 COPY server ./server
+COPY shared ./shared
 COPY public ./public
 RUN mkdir -p data config && chown -R node:node /app
 USER node
