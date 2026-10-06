@@ -85,6 +85,7 @@ export function createApp({
  CREATE TABLE IF NOT EXISTS settings(id INTEGER PRIMARY KEY CHECK(id=1),value TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS exercises(id TEXT PRIMARY KEY,value TEXT NOT NULL,created INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS runs(user_id TEXT PRIMARY KEY REFERENCES users(id),value TEXT NOT NULL);
+ CREATE TABLE IF NOT EXISTS challenge_unlocks(user_id TEXT PRIMARY KEY REFERENCES users(id),unlocked INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS puzzle_progress(user_id TEXT NOT NULL REFERENCES users(id),version TEXT NOT NULL,placed TEXT NOT NULL,PRIMARY KEY(user_id,version));`);
   const accounts = loadAccounts(accountsPath);
   db.exec("BEGIN");
@@ -190,6 +191,30 @@ export function createApp({
     ),
     solved: Object.values(r.state).filter((s) => s.solved).length,
   });
+  function unlockPuzzle(id) {
+    db.prepare("INSERT OR IGNORE INTO challenge_unlocks VALUES(?,?)").run(
+      id,
+      Date.now(),
+    );
+  }
+  function puzzleAccess(user) {
+    if (user.role === "admin") return true;
+    if (
+      db
+        .prepare("SELECT user_id FROM challenge_unlocks WHERE user_id=?")
+        .get(user.id)
+    )
+      return true;
+    const run = getRun(user.id);
+    if (
+      run.exercises.length &&
+      run.exercises.every((e) => run.state[e.id]?.solved)
+    ) {
+      unlockPuzzle(user.id);
+      return true;
+    }
+    return false;
+  }
   const rates = new Map();
   const dummy = passwordHash(randomBytes(16).toString("hex"));
   const cleanup = setInterval(() => {
@@ -284,6 +309,18 @@ export function createApp({
         if (!user) throw fail(401, "Intră în cont ca să înceapă petrecerea.");
       if (path.startsWith("/api/admin/") && user?.role !== "admin")
         throw fail(403, "Doar organizatorul poate modifica provocările.");
+      if (
+        (path === "/api/puzzle" ||
+          path.startsWith("/api/puzzle/") ||
+          path.startsWith("/uploads/")) &&
+        !puzzleAccess(user)
+      )
+        throw fail(
+          403,
+          renderMessage(settings().messages, "puzzle.locked.message"),
+        );
+      if (path === "/api/journey" && method === "GET")
+        return json(res, 200, { puzzleUnlocked: puzzleAccess(user) });
       if (path === "/api/logout" && method === "POST") {
         if (token)
           db.prepare("DELETE FROM sessions WHERE token=?").run(hash(token));
@@ -294,12 +331,18 @@ export function createApp({
         return json(res, 200, { ok: true });
       }
       if (path === "/api/me") return json(res, 200, safeUser(user));
-      if (path === "/api/settings" && method === "GET")
-        return json(res, 200, settings());
+      if (path === "/api/settings" && method === "GET") {
+        const s = settings();
+        if (!puzzleAccess(user))
+          s.puzzle = { count: s.puzzle.count, locked: true };
+        return json(res, 200, s);
+      }
       if (path === "/api/math" && method === "GET")
         return json(res, 200, exposedRun(getRun(user.id)));
-      if (path === "/api/math/restart" && method === "POST")
+      if (path === "/api/math/restart" && method === "POST") {
+        puzzleAccess(user);
         return json(res, 200, exposedRun(newRun(user.id)));
+      }
       const exerciseRoute = path.match(
         /^\/api\/math\/([^/]+)\/(check|hint|solution)$/,
       );
@@ -337,6 +380,11 @@ export function createApp({
         }
         run.state[e.id] = state;
         saveRun(user.id, run);
+        if (
+          run.exercises.length &&
+          run.exercises.every((e) => run.state[e.id]?.solved)
+        )
+          unlockPuzzle(user.id);
         return json(res, 200, {
           ...result,
           exercise: publicExercise(e, state, settings().messages),

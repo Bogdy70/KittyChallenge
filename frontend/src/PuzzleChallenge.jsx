@@ -1,5 +1,12 @@
 import { useMessages } from "./Messages";
-import React, { useEffect, useRef, useState, useMemo, useId } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useMemo,
+  useId,
+} from "react";
 import { api } from "./api";
 import { GuideSpeech } from "./Guide";
 import { Icon, Progress, ErrorBox, Loading } from "./Art";
@@ -88,6 +95,9 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
     [page, setPage] = useState(0),
     [zoom, setZoom] = useState(1),
     [preview, setPreview] = useState(false),
+    [focusMode, setFocusMode] = useState(false),
+    [showGuide, setShowGuide] = useState(false),
+    [fitWidth, setFitWidth] = useState(620),
     [hint, setHint] = useState(false),
     [error, setError] = useState(""),
     [note, setNote] = useState(""),
@@ -102,7 +112,12 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
     [drag, setDrag] = useState(null),
     [shuffle, setShuffle] = useState(0),
     [busy, setBusy] = useState(false);
-  const boardRef = useRef(null),
+  const workspaceRef = useRef(null),
+    viewportRef = useRef(null),
+    nativeFullscreen = useRef(false),
+    focusActive = useRef(false),
+    orientationOwned = useRef(false),
+    boardRef = useRef(null),
     puzzleRef = useRef(null),
     queue = useRef(Promise.resolve()),
     mounted = useRef(true),
@@ -127,6 +142,186 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
       mounted.current = false;
     };
   }, []);
+  const boardRatio = puzzle
+    ? ((puzzle.cols * 100 + 56) / (puzzle.rows * 100 + 56)) *
+      (((puzzle.width / puzzle.height) * puzzle.rows) / puzzle.cols)
+    : 1;
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const fit = () =>
+      setFitWidth(
+        Math.max(
+          80,
+          Math.min(
+            viewport.clientWidth - 32,
+            (viewport.clientHeight - 32) * boardRatio,
+          ),
+        ),
+      );
+    const observer = new ResizeObserver(fit);
+    observer.observe(viewport);
+    fit();
+    return () => observer.disconnect();
+  }, [puzzle?.version, boardRatio]);
+  function revealSelected() {
+    const viewport = viewportRef.current;
+    const target = boardRef.current?.querySelectorAll(".puzzle-slot")[selected];
+    if (!viewport || !target) return;
+    const frame = viewport.getBoundingClientRect(),
+      cell = target.getBoundingClientRect();
+    if (
+      cell.left >= frame.left + 8 &&
+      cell.right <= frame.right - 8 &&
+      cell.top >= frame.top + 8 &&
+      cell.bottom <= frame.bottom - 8
+    )
+      return;
+    viewport.scrollTo({
+      left:
+        viewport.scrollLeft +
+        cell.left +
+        cell.width / 2 -
+        frame.left -
+        viewport.clientWidth / 2,
+      top:
+        viewport.scrollTop +
+        cell.top +
+        cell.height / 2 -
+        frame.top -
+        viewport.clientHeight / 2,
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  }
+  function unlockOrientation() {
+    if (orientationOwned.current) {
+      try {
+        screen.orientation?.unlock?.();
+      } catch {}
+      orientationOwned.current = false;
+    }
+  }
+  async function exitFocus() {
+    focusActive.current = false;
+    setFocusMode(false);
+    unlockOrientation();
+    if (document.fullscreenElement === workspaceRef.current) {
+      try {
+        await document.exitFullscreen();
+      } catch {}
+    }
+  }
+  function enterFocus() {
+    focusActive.current = true;
+    setFocusMode(true);
+    setShowGuide(false);
+    setZoom(1);
+    viewportRef.current?.scrollTo(0, 0);
+    const element = workspaceRef.current;
+    // Request during the click, while the browser still has user activation.
+    try {
+      element
+        .requestFullscreen?.({ navigationUI: "hide" })
+        .then(async () => {
+          if (!focusActive.current) {
+            if (document.fullscreenElement === element)
+              await document.exitFullscreen().catch(() => {});
+            return;
+          }
+          if (
+            matchMedia("(pointer: coarse)").matches &&
+            screen.orientation?.lock
+          ) {
+            try {
+              await screen.orientation.lock("landscape");
+              orientationOwned.current = true;
+              if (!focusActive.current) unlockOrientation();
+            } catch {
+              /* Portrait layout remains usable when orientation lock is unavailable. */
+            }
+          }
+        })
+        .catch(() => {});
+    } catch {
+      /* CSS focus mode works without the Fullscreen API. */
+    }
+  }
+  useEffect(() => {
+    const changed = () => {
+      if (document.fullscreenElement === workspaceRef.current)
+        nativeFullscreen.current = true;
+      else if (nativeFullscreen.current) {
+        nativeFullscreen.current = false;
+        focusActive.current = false;
+        setFocusMode(false);
+        unlockOrientation();
+      }
+    };
+    document.addEventListener("fullscreenchange", changed);
+    return () => {
+      focusActive.current = false;
+      unlockOrientation();
+      if (document.fullscreenElement === workspaceRef.current)
+        document.exitFullscreen().catch(() => {});
+      document.removeEventListener("fullscreenchange", changed);
+    };
+  }, []);
+  useEffect(() => {
+    if (!focusMode) return;
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement;
+    document.body.style.overflow = "hidden";
+    const background = [
+      ...document.querySelectorAll(
+        ".app-header, .app-footer, .page-heading, .completion-banner",
+      ),
+    ].map((element) => ({ element, inert: element.inert }));
+    background.forEach(({ element }) => {
+      element.inert = true;
+    });
+    workspaceRef.current?.focus({ preventScroll: true });
+    function keys(event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        exitFocus();
+      }
+      if (event.key !== "Tab") return;
+      const controls = [
+        ...workspaceRef.current.querySelectorAll(
+          'button:not(:disabled), input:not(:disabled), [tabindex="0"]',
+        ),
+      ].filter((el) => el.getClientRects().length);
+      const first = controls[0],
+        last = controls.at(-1);
+      if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          document.activeElement === workspaceRef.current)
+      ) {
+        event.preventDefault();
+        last?.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          document.activeElement === workspaceRef.current)
+      ) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+    document.addEventListener("keydown", keys);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      background.forEach(({ element, inert }) => {
+        element.inert = inert;
+      });
+      document.removeEventListener("keydown", keys);
+      if (previousFocus?.isConnected)
+        previousFocus.focus({ preventScroll: true });
+    };
+  }, [focusMode]);
   const placed = useMemo(() => new Set(puzzle?.placed || []), [puzzle?.placed]);
   const remaining = useMemo(
     () =>
@@ -330,7 +525,14 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
           {" " + t("home.piese")}
         </span>
       </div>
-      <section className="puzzle-workspace">
+      <section
+        ref={workspaceRef}
+        className={`puzzle-workspace puzzle-studio ${focusMode ? "puzzle-focus" : ""}`}
+        tabIndex={-1}
+        role={focusMode ? "dialog" : "region"}
+        aria-modal={focusMode || undefined}
+        aria-label={t("puzzle.tabla-puzzle-ului")}
+      >
         <div className="puzzle-toolbar">
           <Progress
             value={puzzle.placed.length}
@@ -340,29 +542,41 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
           <div className="toolbar-actions">
             <button
               className={`button small ${preview ? "lavender" : ""}`}
+              aria-label={
+                preview ? t("puzzle.ascunde-modelul") : t("puzzle.vezi-modelul")
+              }
               onClick={() => setPreview(!preview)}
               aria-pressed={preview}
             >
               <Icon name="eye" size={17} />
-              {preview ? t("puzzle.ascunde-modelul") : t("puzzle.vezi-modelul")}
+              <span className="tool-label">
+                {preview
+                  ? t("puzzle.ascunde-modelul")
+                  : t("puzzle.vezi-modelul")}
+              </span>
             </button>
             <button
               className="button small soft-yellow"
+              aria-label={t("puzzle.indiciu")}
               disabled={selected === null}
               onClick={() => {
+                if (!hint) revealSelected();
                 setHint(!hint);
                 setGuide({
-                  title: "Un secret de cavaler…",
+                  title: t("puzzle.hint.title"),
                   message: !hint
-                    ? `Piesa aleasă merge pe rândul ${Math.floor(selected / puzzle.cols) + 1}, coloana ${(selected % puzzle.cols) + 1}. Am luminat și locul pe tablă pentru tine.`
-                    : "Am ascuns indiciul. Te las să descoperi singură, dar rămân aproape!",
+                    ? t("puzzle.hint.message", {
+                        row: Math.floor(selected / puzzle.cols) + 1,
+                        col: (selected % puzzle.cols) + 1,
+                      })
+                    : t("puzzle.hint.hidden"),
                   mood: "thinking",
                 });
               }}
               aria-pressed={hint}
             >
               <Icon name="bulb" size={17} />
-              {" " + t("puzzle.indiciu")}
+              <span className="tool-label">{t("puzzle.indiciu")}</span>
             </button>
             <div className="zoom-controls">
               <button
@@ -383,28 +597,79 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
                 <Icon name="plus" size={16} />
               </button>
             </div>
+            <button
+              className="button small"
+              aria-label={t("puzzle.fit")}
+              title={t("puzzle.fit")}
+              onClick={() => {
+                setZoom(1);
+                viewportRef.current?.scrollTo(0, 0);
+              }}
+            >
+              <Icon name="fit" size={17} />
+              <span className="tool-label">{t("puzzle.fit")}</span>
+            </button>
+            <button
+              className="button small guide-toggle"
+              aria-label={
+                showGuide ? t("puzzle.guide.hide") : t("puzzle.guide.show")
+              }
+              aria-pressed={showGuide}
+              onClick={() => setShowGuide((v) => !v)}
+            >
+              <Icon name="paw" size={17} />
+              <span className="tool-label">
+                {showGuide ? t("puzzle.guide.hide") : t("puzzle.guide.show")}
+              </span>
+            </button>
+            <button
+              className="button small rainbow fullscreen-toggle"
+              aria-label={
+                focusMode
+                  ? t("puzzle.fullscreen.exit")
+                  : t("puzzle.fullscreen.enter")
+              }
+              onClick={focusMode ? exitFocus : enterFocus}
+            >
+              <Icon name={focusMode ? "close" : "expand"} size={17} />
+              <span className="tool-label">
+                {focusMode
+                  ? t("puzzle.fullscreen.exit")
+                  : t("puzzle.fullscreen.enter")}
+              </span>
+            </button>
           </div>
         </div>
-        <GuideSpeech
-          className="puzzle-guide"
-          mood={complete ? "celebrate" : guide.mood}
-          title={
-            complete ? t("puzzle.misiune-indeplinita-sabia-sus") : guide.title
-          }
-          message={
-            complete
-              ? t(
-                  "puzzle.ai-pus-ultima-piesa-aceasta-poveste-este-doar-pentru-tine-la-mult",
-                )
-              : guide.message
-          }
-        />
+        {focusMode && (
+          <p className="orientation-tip">{t("puzzle.fullscreen.rotate")}</p>
+        )}
+        {(!focusMode || showGuide) && (
+          <GuideSpeech
+            className="puzzle-guide"
+            mood={complete ? "celebrate" : guide.mood}
+            title={
+              complete ? t("puzzle.misiune-indeplinita-sabia-sus") : guide.title
+            }
+            message={
+              complete
+                ? t(
+                    "puzzle.ai-pus-ultima-piesa-aceasta-poveste-este-doar-pentru-tine-la-mult",
+                  )
+                : guide.message
+            }
+          />
+        )}
         <div className="puzzle-area">
-          <div className="puzzle-scroll">
+          <div
+            className="puzzle-scroll"
+            ref={viewportRef}
+            tabIndex={0}
+            aria-label={t("puzzle.board.pan")}
+          >
             <div
               className="puzzle-board"
               style={{
-                width: `${Math.max(360, Math.min(1000, Math.max(620, puzzle.cols * 44))) * zoom}px`,
+                width: `${fitWidth * zoom}px`,
               }}
             >
               <svg
@@ -526,37 +791,132 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
               </svg>
             </div>
           </div>
-          <aside className="puzzle-side">
-            <div className="mini-preview">
-              <img
-                src={puzzle.url}
-                alt={t("puzzle.imaginea-pe-care-o-vei-reconstitui")}
-              />
-            </div>
-            <span className="eyebrow">{t("puzzle.ghid-de-buzunar")}</span>
-            <h3>{t("puzzle.gaseste-i-locul")}</h3>
-            <ol>
-              <li>{t("puzzle.alege-o-piesa-din-cutie")}</li>
-              <li>{t("puzzle.trage-o-pe-tabla-sau-apasa-pe-locul-ei")}</li>
-              <li>{t("puzzle.foloseste-zoom-pentru-detalii")}</li>
-            </ol>
-            <p className="muted small-text">
-              {t(
-                "puzzle.cu-tastatura-tab-selecteaza-enter-alege-piesa-sau-locul-piesele-s",
-              )}
-            </p>
-            {selected !== null ? (
-              <div className="selected-preview">
-                <Piece
-                  index={selected}
-                  puzzle={puzzle}
-                  idPrefix={`${prefix}-selected`}
-                />
-                <span>{t("puzzle.piesa-aleasa")}</span>
+          <aside className="piece-tray" aria-label={t("puzzle.cutia-cu-piese")}>
+            <div className="section-title">
+              <div>
+                <h3>
+                  {complete
+                    ? t("puzzle.toate-piesele-sunt-acasa")
+                    : t("puzzle.cutia-cu-piese")}
+                </h3>
+                <p>
+                  {complete
+                    ? t("puzzle.si-imaginea-este-la-fel-de-speciala-ca-tine")
+                    : t("puzzle.remaining.short", {
+                        remaining: remaining.length,
+                      })}
+                </p>
               </div>
-            ) : (
-              <div className="puzzle-side-note">
-                {t("puzzle.cavalerul-miau-vegheaza-deasupra-tablei")}
+              <button
+                className="button small"
+                onClick={() => {
+                  setShuffle((s) => s + 1);
+                  setPage(0);
+                }}
+                disabled={complete}
+              >
+                <Icon name="refresh" size={16} />
+                {" " + t("puzzle.amesteca")}
+              </button>
+            </div>
+            <div className="tray-selection" role="status">
+              {selected !== null ? (
+                <>
+                  <div className="selected-mini">
+                    <Piece
+                      index={selected}
+                      puzzle={puzzle}
+                      idPrefix={prefix + "-selected"}
+                    />
+                  </div>
+                  <span>
+                    {hint
+                      ? t("puzzle.hint.position", {
+                          row: Math.floor(selected / puzzle.cols) + 1,
+                          col: (selected % puzzle.cols) + 1,
+                        })
+                      : t("puzzle.piesa-aleasa")}
+                  </span>
+                  <button
+                    className="icon-button"
+                    aria-label={t("puzzle.selected.clear")}
+                    onClick={() => {
+                      setSelected(null);
+                      setHint(false);
+                    }}
+                  >
+                    <Icon name="close" size={16} />
+                  </button>
+                </>
+              ) : (
+                <span>{t("puzzle.selected.none")}</span>
+              )}
+            </div>
+            <div className="tray-grid">
+              {remaining
+                .slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
+                .map((i) => (
+                  <button
+                    key={i}
+                    className={`tray-piece ${selected === i ? "selected" : ""}`}
+                    aria-label={t("puzzle.alege-piesa-value1", {
+                      value1: i + 1,
+                    })}
+                    aria-pressed={selected === i}
+                    onClick={() => {
+                      setSelected(i);
+                      setHint(false);
+                      setGuide({
+                        title: t("puzzle.selected.title"),
+                        message: t("puzzle.selected.message"),
+                        mood: "thinking",
+                      });
+                    }}
+                    onPointerDown={(e) => {
+                      if (e.button !== 0) return;
+                      setSelected(i);
+                      setHint(false);
+                      setDrag({
+                        index: i,
+                        x: e.clientX,
+                        y: e.clientY,
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        moved: false,
+                      });
+                    }}
+                  >
+                    <Piece
+                      index={i}
+                      puzzle={puzzle}
+                      idPrefix={`${prefix}-tray`}
+                    />
+                  </button>
+                ))}
+            </div>
+            {pages > 1 && (
+              <div className="tray-pagination">
+                <button
+                  className="button small"
+                  disabled={currentPage === 0}
+                  onClick={() => setPage(currentPage - 1)}
+                >
+                  {t("puzzle.inapoi")}
+                </button>
+                <span>
+                  {t("puzzle.cutia") + " "}
+                  {currentPage + 1}
+                  {" " + t("puzzle.din") + " "}
+                  {pages}
+                </span>
+                <button
+                  className="button small"
+                  disabled={currentPage >= pages - 1}
+                  onClick={() => setPage(currentPage + 1)}
+                >
+                  {t("puzzle.mai-multe-piese") + " "}
+                  <Icon name="arrow" size={15} />
+                </button>
               </div>
             )}
           </aside>
@@ -587,106 +947,22 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
             {t("puzzle.reincearca-salvarea")}
           </button>
         )}
-        <div className="piece-tray">
-          <div className="section-title">
-            <div>
-              <h3>
-                {complete
-                  ? t("puzzle.toate-piesele-sunt-acasa")
-                  : t("puzzle.cutia-cu-piese")}
-              </h3>
-              <p>
-                {complete
-                  ? t("puzzle.si-imaginea-este-la-fel-de-speciala-ca-tine")
-                  : t(
-                      "puzzle.remaining-piese-isi-cauta-locul-selecteaza-sau-trage-o-piesa",
-                      {
-                        remaining: remaining.length,
-                      },
-                    )}
-              </p>
-            </div>
-            <button
-              className="button small"
-              onClick={() => {
-                setShuffle((s) => s + 1);
-                setPage(0);
-              }}
-              disabled={complete}
-            >
-              <Icon name="refresh" size={16} />
-              {" " + t("puzzle.amesteca")}
-            </button>
+
+        {drag?.moved && (
+          <div
+            className="drag-piece"
+            style={{
+              left: drag.x - 45,
+              top: drag.y - 45,
+            }}
+          >
+            <Piece
+              index={drag.index}
+              puzzle={puzzle}
+              idPrefix={`${prefix}-drag`}
+            />
           </div>
-          <div className="tray-grid">
-            {remaining
-              .slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
-              .map((i) => (
-                <button
-                  key={i}
-                  className={`tray-piece ${selected === i ? "selected" : ""}`}
-                  aria-label={t("puzzle.alege-piesa-value1", {
-                    value1: i + 1,
-                  })}
-                  aria-pressed={selected === i}
-                  onClick={() => {
-                    setSelected(i);
-                    setHint(false);
-                    setGuide({
-                      title: "Am luat o piesă în expediție!",
-                      message:
-                        "Acum caută-i locul pe tablă. Poți folosi modelul sau un indiciu — și cavalerii primesc ajutor!",
-                      mood: "thinking",
-                    });
-                  }}
-                  onPointerDown={(e) => {
-                    if (e.button !== 0) return;
-                    setSelected(i);
-                    setHint(false);
-                    setDrag({
-                      index: i,
-                      x: e.clientX,
-                      y: e.clientY,
-                      startX: e.clientX,
-                      startY: e.clientY,
-                      moved: false,
-                    });
-                  }}
-                >
-                  <Piece
-                    index={i}
-                    puzzle={puzzle}
-                    idPrefix={`${prefix}-tray`}
-                  />
-                </button>
-              ))}
-          </div>
-          {pages > 1 && (
-            <div className="tray-pagination">
-              <button
-                className="button small"
-                disabled={currentPage === 0}
-                onClick={() => setPage(currentPage - 1)}
-              >
-                {t("puzzle.inapoi")}
-              </button>
-              <span>
-                {t("puzzle.cutia") + " "}
-                {currentPage + 1}
-                {" " + t("puzzle.din") + " "}
-                {pages}
-              </span>
-              <button
-                className="button small"
-                disabled={currentPage >= pages - 1}
-                onClick={() => setPage(currentPage + 1)}
-              >
-                {t("puzzle.mai-multe-piese") + " "}
-                <Icon name="arrow" size={15} />
-              </button>
-            </div>
-          )}
-        </div>
+        )}
       </section>
       {complete && (
         <section className="completion-banner">
@@ -700,21 +976,6 @@ export default function PuzzleChallenge({ celebrate, onProgress }) {
             </p>
           </div>
         </section>
-      )}
-      {drag?.moved && (
-        <div
-          className="drag-piece"
-          style={{
-            left: drag.x - 45,
-            top: drag.y - 45,
-          }}
-        >
-          <Piece
-            index={drag.index}
-            puzzle={puzzle}
-            idPrefix={`${prefix}-drag`}
-          />
-        </div>
       )}
     </>
   );

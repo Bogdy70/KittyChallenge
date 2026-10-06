@@ -9,3 +9,5 @@ createRoot(document.getElementById("root")).render(
   </React.StrictMode>,
 );
 import "./editor.css";
+
+import "./puzzle.css";

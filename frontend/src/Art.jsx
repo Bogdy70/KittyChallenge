@@ -8,6 +8,13 @@ export function Icon({ name, size = 20, ...props }) {
       </>
     ),
     check: <path d="m5 12 4 4L19 6" />,
+    expand: <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />,
+    fit: (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="3" />
+        <path d="m7 8 3 3m7-3-3 3m-7 5 3-3m7 3-3-3" />
+      </>
+    ),
     close: <path d="m6 6 12 12M18 6 6 18" />,
     heart: (
       <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" />

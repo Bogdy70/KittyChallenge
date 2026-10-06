@@ -153,7 +153,18 @@ try {
     "main-content",
   );
   assert.equal(new URL(page.url()).hash, "#home");
-  await page.getByRole("button", { name: "Matrici", exact: true }).click();
+  await page.getByRole("button", { name: "Puzzle", exact: true }).click();
+  await page
+    .getByText("Puzzle-ul își păstrează încă secretul.", { exact: true })
+    .waitFor();
+  assert.equal(await page.locator(".puzzle-board").count(), 0);
+  assert.equal(
+    await page.evaluate(() => fetch("/api/puzzle").then((r) => r.status)),
+    403,
+  );
+  await page
+    .getByRole("button", { name: "Mai întâi, matricile", exact: true })
+    .click();
   await page.getByRole("heading", { name: "Încălzirea mustăților" }).waitFor();
   await page.getByRole("button", { name: "Un indiciu", exact: true }).click();
   await page.getByText("O șoaptă de la pisicuță").waitFor();
@@ -190,7 +201,7 @@ try {
   await page
     .getByRole("heading", { name: "Minte sclipitoare, misiune îndeplinită!" })
     .waitFor();
-  await page.getByRole("button", { name: "Puzzle", exact: true }).click();
+  await page.getByRole("button", { name: "Spre puzzle", exact: true }).click();
   await page.locator(".piece-tray h3").waitFor();
   await page
     .getByRole("button", { name: "Alege piesa 1", exact: true })
@@ -211,7 +222,52 @@ try {
   await page
     .getByRole("button", { name: "Locul 1, 1, completat", exact: true })
     .waitFor();
-  await page.setViewportSize({ width: 1440, height: 1500 });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page
+    .getByRole("button", { name: "Ecran complet", exact: true })
+    .click();
+  await page.getByRole("dialog", { name: "Tabla puzzle-ului" }).waitFor();
+  const fullscreenLayout = await page.evaluate(() => {
+    const w = document.querySelector(".puzzle-focus"),
+      tray = w.querySelector(".piece-tray").getBoundingClientRect(),
+      board = w.querySelector(".puzzle-scroll").getBoundingClientRect();
+    return {
+      native: document.fullscreenElement === w,
+      width: innerWidth,
+      height: innerHeight,
+      tray: {
+        left: tray.left,
+        right: tray.right,
+        top: tray.top,
+        bottom: tray.bottom,
+      },
+      board: {
+        left: board.left,
+        right: board.right,
+        top: board.top,
+        bottom: board.bottom,
+      },
+    };
+  });
+  assert.equal(fullscreenLayout.native, true, "desktop uses native fullscreen");
+  assert.ok(fullscreenLayout.tray.left >= fullscreenLayout.board.right - 1);
+  assert.ok(fullscreenLayout.tray.bottom <= fullscreenLayout.height + 1);
+  await page.screenshot({
+    path: join(out, "14-puzzle-fullscreen-desktop.png"),
+  });
+  for (let z = 0; z < 8; z++)
+    await page.getByRole("button", { name: "Mărește puzzle-ul" }).click();
+  const dockBefore = await page.locator(".piece-tray").boundingBox();
+  await page.locator(".puzzle-scroll").evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+    el.scrollLeft = el.scrollWidth;
+  });
+  assert.deepEqual(
+    await page.locator(".piece-tray").boundingBox(),
+    dockBefore,
+    "dock stays reachable while board pans",
+  );
+  await page.getByRole("button", { name: "Potrivește pe ecran" }).click();
   const source = await page
     .getByRole("button", { name: "Alege piesa 2", exact: true })
     .boundingBox();
@@ -232,6 +288,13 @@ try {
   await page
     .getByRole("button", { name: "Locul 1, 2, completat", exact: true })
     .waitFor();
+  await page.keyboard.press("Escape");
+  await page.locator(".puzzle-focus").waitFor({ state: "detached" });
+  assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+  assert.equal(
+    await page.evaluate(() => document.querySelector(".app-header").inert),
+    false,
+  );
   const puzzleData = await page.evaluate(() =>
     fetch("/api/puzzle").then((r) => r.json()),
   );
@@ -278,6 +341,108 @@ try {
     fullPage: true,
   });
   await overflow();
+  const phoneContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    reducedMotion: "reduce",
+    storageState: await context.storageState(),
+  });
+  const phone = await phoneContext.newPage();
+  phone.on("pageerror", (e) => errors.push(e.message));
+  phone.on("dialog", (d) => d.accept());
+  await phone.addInitScript(() => {
+    let element = null;
+    window.__rotationAttempts = 0;
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => element,
+    });
+    Element.prototype.requestFullscreen = async function () {
+      element = this;
+      document.dispatchEvent(new Event("fullscreenchange"));
+    };
+    document.exitFullscreen = async () => {
+      element = null;
+      document.dispatchEvent(new Event("fullscreenchange"));
+    };
+    screen.orientation.lock = async () => {
+      window.__rotationAttempts++;
+      throw new Error("Device denied orientation lock");
+    };
+    screen.orientation.unlock = () => {};
+  });
+  await phone.goto(base + "/#puzzle");
+  await phone
+    .getByRole("button", { name: "De la început", exact: true })
+    .click();
+  await phone
+    .getByRole("button", { name: "Alege piesa 1", exact: true })
+    .waitFor();
+  await phone.getByRole("button", { name: "Ecran complet", exact: true }).tap();
+  await phone.getByRole("dialog").waitFor();
+  assert.equal(
+    await phone.evaluate(() => window.__rotationAttempts),
+    1,
+    "phone tries landscape when browser permits fullscreen",
+  );
+  await phone.getByRole("button", { name: "Alege piesa 1", exact: true }).tap();
+  await phone.getByRole("button", { name: "Indiciu", exact: true }).tap();
+  await phone.getByText("Rândul 1 · Coloana 1", { exact: true }).waitFor();
+  await phone.getByRole("button", { name: "Locul 1, 1", exact: true }).tap();
+  await phone
+    .getByRole("button", { name: "Locul 1, 1, completat", exact: true })
+    .waitFor();
+  await phone.screenshot({ path: join(out, "15-puzzle-fullscreen-phone.png") });
+  await phone.setViewportSize({ width: 844, height: 390 });
+  await phone.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  await phone.screenshot({
+    path: join(out, "16-puzzle-fullscreen-landscape.png"),
+  });
+  const landscape = await phone.evaluate(() => {
+    const tray = document.querySelector(".piece-tray").getBoundingClientRect(),
+      board = document.querySelector(".puzzle-scroll").getBoundingClientRect();
+    return {
+      right: tray.right,
+      bottom: tray.bottom,
+      left: tray.left,
+      boardRight: board.right,
+      w: innerWidth,
+      h: innerHeight,
+    };
+  });
+  assert.ok(
+    landscape.left >= landscape.boardRight - 1 &&
+      landscape.right <= landscape.w + 1 &&
+      landscape.bottom <= landscape.h + 1,
+    JSON.stringify(landscape),
+  );
+  await phone
+    .getByRole("button", { name: "Ieși din ecran complet", exact: true })
+    .tap();
+  await phone.locator(".puzzle-focus").waitFor({ state: "detached" });
+  await phone.setViewportSize({ width: 390, height: 844 });
+  await phone.evaluate(() => {
+    Element.prototype.requestFullscreen = undefined;
+  });
+  await phone.getByRole("button", { name: "Ecran complet", exact: true }).tap();
+  await phone.getByRole("dialog").waitFor();
+  assert.equal(
+    await phone.evaluate(() => document.fullscreenElement),
+    null,
+    "CSS focus mode survives absent fullscreen API",
+  );
+  await phone
+    .getByRole("button", { name: "Ieși din ecran complet", exact: true })
+    .tap();
+  await phone.locator(".puzzle-focus").waitFor({ state: "detached" });
+  assert.equal(await phone.evaluate(() => document.body.style.overflow), "");
+  await phoneContext.close();
   await page.getByRole("button", { name: "Ieși din cont" }).click();
   await page.getByRole("heading", { name: "Hei, sărbătorito!" }).waitFor();
   await page.screenshot({
@@ -326,6 +491,61 @@ try {
   await overflow();
   await page.getByRole("button", { name: "Mai multe piese" }).click();
   await page.getByText("Cutia 2 din 21").waitFor();
+  const largePhoneContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    reducedMotion: "reduce",
+    storageState: await context.storageState(),
+  });
+  const largePhone = await largePhoneContext.newPage();
+  largePhone.on("pageerror", (e) => errors.push(e.message));
+  await largePhone.addInitScript(() => {
+    Element.prototype.requestFullscreen = undefined;
+  });
+  await largePhone.goto(base + "/#puzzle");
+  await largePhone
+    .getByRole("button", { name: "Ecran complet", exact: true })
+    .tap();
+  await largePhone.getByRole("dialog").waitFor();
+  await largePhone
+    .getByRole("button", { name: "Mai multe piese", exact: true })
+    .tap();
+  await largePhone.getByText("Cutia 2 din 21").waitFor();
+  const lastVisible = largePhone.locator(".tray-piece").last();
+  await lastVisible.scrollIntoViewIfNeeded();
+  await lastVisible.tap();
+  for (let z = 0; z < 8; z++)
+    await largePhone.getByRole("button", { name: "Mărește puzzle-ul" }).tap();
+  await largePhone.getByRole("button", { name: "Indiciu", exact: true }).tap();
+  const reachable = await largePhone.evaluate(() => {
+    const dock = document.querySelector(".piece-tray").getBoundingClientRect(),
+      grid = document.querySelector(".tray-grid"),
+      slot = document.querySelector(".hint-slot").getBoundingClientRect(),
+      view = document.querySelector(".puzzle-scroll").getBoundingClientRect();
+    return {
+      dockBottom: dock.bottom,
+      h: innerHeight,
+      gridH: grid.clientHeight,
+      gridScrollH: grid.scrollHeight,
+      visible:
+        slot.left >= view.left - 1 &&
+        slot.right <= view.right + 1 &&
+        slot.top >= view.top - 1 &&
+        slot.bottom <= view.bottom + 1,
+    };
+  });
+  assert.ok(
+    reachable.dockBottom <= reachable.h + 1 &&
+      reachable.gridH >= reachable.gridScrollH - 2 &&
+      reachable.visible,
+    JSON.stringify(reachable),
+  );
+  await largePhone.screenshot({ path: join(out, "17-puzzle-500-phone.png") });
+  await largePhone
+    .getByRole("button", { name: "Ieși din ecran complet", exact: true })
+    .tap();
+  await largePhoneContext.close();
   await page.locator(".toast-guide").waitFor({ state: "hidden" });
   await page.screenshot({
     path: join(out, "10-puzzle-500.png"),
@@ -478,7 +698,7 @@ try {
   );
   assert.deepEqual(errors, [], "no browser runtime errors");
   console.log(
-    "Browser checks passed: login, matrix completion, hints, puzzle placement/persistence, mobile layouts, admin settings/photo/exercise, 500 pieces, editable messages and JSON import/export.",
+    "Browser checks passed: login, matrix completion, hints, puzzle placement/persistence, mobile layouts, admin settings/photo/exercise, 500 pieces, editable messages and JSON import/export, gated journey, native fullscreen, mobile touch and landscape/fallback.",
   );
 } catch (e) {
   if (page)

@@ -139,6 +139,43 @@ test("authentification, permissions, validation et progression persistante", asy
     ).data.exercise.revealed,
     true,
   );
+  assert.equal(
+    (await req("/api/journey", { cookie: p })).data.puzzleUnlocked,
+    false,
+  );
+  for (const [path, method, body] of [
+    ["/api/puzzle", "GET"],
+    ["/api/puzzle/progress", "PUT", { version: "demo-10", placed: [0] }],
+    ["/api/puzzle/restart", "POST", { version: "demo-10" }],
+    ["/uploads/00000000-0000-0000-0000-000000000000.png", "GET"],
+  ])
+    assert.equal((await req(path, { cookie: p, method, body })).status, 403);
+  assert.equal(
+    (await req("/api/settings", { cookie: p })).data.puzzle.url,
+    undefined,
+    "locked player cannot preview the surprise photo",
+  );
+  assert.equal(
+    (await req("/api/journey", { cookie: a })).data.puzzleUnlocked,
+    true,
+  );
+  assert.equal(
+    (await req("/api/puzzle", { cookie: a })).status,
+    200,
+    "admin bypasses matrix gate",
+  );
+  for (const exercise of run.exercises.slice(1)) {
+    const solved = await req("/api/math/" + exercise.id + "/check", {
+      cookie: p,
+      method: "POST",
+      body: { runId: run.id, answer: solve(exercise) },
+    });
+    assert.equal(solved.status, 200);
+  }
+  assert.equal(
+    (await req("/api/journey", { cookie: p })).data.puzzleUnlocked,
+    true,
+  );
   let puzzle = (await req("/api/puzzle", { cookie: p })).data;
   assert.equal(
     (
@@ -224,6 +261,11 @@ test("authentification, permissions, validation et progression persistante", asy
     ).status,
     409,
   );
+  assert.equal(
+    (await req("/api/journey", { cookie: p })).data.puzzleUnlocked,
+    true,
+    "a new matrix run keeps the earned unlock",
+  );
   puzzle = (await req("/api/puzzle", { cookie: p })).data;
   assert.equal(puzzle.count, 500);
   assert.equal(puzzle.rows * puzzle.cols, 500);
@@ -249,6 +291,11 @@ test("authentification, permissions, validation et progression persistante", asy
   await new Promise((r) => app.listen(0, "127.0.0.1", r));
   base = `http://127.0.0.1:${app.address().port}`;
   assert.equal((await req("/api/me", { cookie: p })).status, 200);
+  assert.equal(
+    (await req("/api/journey", { cookie: p })).data.puzzleUnlocked,
+    true,
+    "unlock survives server restart",
+  );
   assert.equal(
     (await req("/api/settings", { cookie: a })).data.puzzle.url,
     updated.puzzle.url,

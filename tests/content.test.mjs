@@ -152,9 +152,9 @@ test("numai adminul schimbă textele; indicii, titluri și explicații se actual
     })
   ).data;
   const run = (await request("/api/math", { cookie: player })).data,
-    puzzle = (await request("/api/puzzle", { cookie: player })).data;
+    puzzle = (await request("/api/puzzle", { cookie: admin })).data;
   await request("/api/puzzle/progress", {
-    cookie: player,
+    cookie: admin,
     method: "PUT",
     body: { version: puzzle.version, placed: [0] },
   });
@@ -273,7 +273,7 @@ test("numai adminul schimbă textele; indicii, titluri și explicații se actual
   );
   assert.equal((await request("/api/math", { cookie: player })).data.solved, 1);
   assert.deepEqual(
-    (await request("/api/puzzle", { cookie: player })).data.placed,
+    (await request("/api/puzzle", { cookie: admin })).data.placed,
     [0],
   );
   assert.equal(

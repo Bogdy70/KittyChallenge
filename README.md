@@ -51,6 +51,12 @@ Păstrează identificatorii `admin` / `birthday` și câte un rol `admin` / `pla
 
 O fotografie nouă sau alt număr de piese creează un puzzle nou pentru ambele conturi. Modificarea dificultății și a exercițiilor se aplică **seturilor noi**; un set deja început rămâne intact. Apasă „Vreau un set nou” în pagina Matrici pentru a-l înlocui, după confirmare.
 
+## Ordinea aventurii
+
+Pentru contul invitatei, **matricile se termină înainte de puzzle**, inclusiv exercițiile personalizate din setul început. Indiciile și soluțiile pot ajuta, dar fiecare exercițiu trebuie trimis cu răspuns corect. Pagina Acasă păstrează fotografia-surpriză ascunsă și arată drumul spre matrici. După ultimul răspuns corect apare butonul **Spre puzzle**.
+
+Administratorul poate testa oricare provocare, în orice ordine. Blocarea este verificată pe server pentru pagina puzzle-ului, salvare, resetare și fotografiile încărcate. Deblocarea este păstrată în SQLite: un set nou de matrici nu închide din nou puzzle-ul și nu șterge piesele puse. Seturile terminate înainte de această actualizare sunt recunoscute automat.
+
 ## Matrici & mustăți
 
 - **Pui de pisică:** 5 exerciții, cu adunare, înmulțire cu scalar, transpusă, determinant și inversă simplă 2 × 2.
@@ -68,10 +74,15 @@ O fotografie nouă sau alt număr de piese creează un puzzle nou pentru ambele 
 - Proporțiile fotografiei sunt păstrate; piesele pot fi dreptunghiulare, mai ales la setul de 10.
 - Trage o piesă sau selecteaz-o și apasă pe locul ei. Piesa se fixează numai în poziția corectă.
 - Cu tastatura: Tab / Enter pentru piesă și locul de pe tablă.
-- Zoom 50–300%, model suprapus, indiciu pentru piesa selectată și amestecarea cutiei.
+- Zoom 50–300%, model suprapus, indiciu pentru piesa selectată și amestecarea cutiei. Dacă locul sugerat este în afara zonei vizibile la zoom, indiciul deplasează tabla spre el. **Potrivește pe ecran** readuce întreaga tablă în zona vizibilă.
+- Tabla are scroll propriu; cutia cu piese rămâne alături pe desktop și landscape, iar pe telefonul ținut vertical stă în partea de jos. Căutarea și așezarea pieselor nu mai necesită alternarea între zone îndepărtate ale paginii.
+- **Ecran complet** păstrează numai tabla, piesele și comenzile. Poți afișa ghidul la cerere. Ieși cu butonul ✕ sau Escape; progresul și selecția sunt păstrate. Există și un mod care ocupă fereastra când browserul nu permite Fullscreen API.
+- Pe telefon, aplicația încearcă orientarea landscape după intrarea în fullscreen. [Blocarea orientării depinde de browser și dispozitiv](https://developer.mozilla.org/en-US/docs/Web/API/ScreenOrientation/lock); dacă nu este permisă, poți roti manual telefonul și interfața se adaptează. Selectează o piesă și atinge locul ei, sau trage în direcția tablei. Cutia se poate derula independent de tablă.
 - Cutie paginată cu 24 de piese: varianta de 500 nu afișează toate miniaturile simultan.
 - Salvare automată pe server; progresul revine după reîncărcare sau conectare de pe alt dispozitiv. Dacă salvarea eșuează, un mesaj oferă reîncercarea.
 - Fotografiile se optimizează în browser la maximum 2000 px și sunt servite numai utilizatorilor conectați. Originalul poate avea maximum 20 MB; serverul acceptă până la 8 MB pentru fișierul optimizat.
+
+[Fullscreen pe desktop](docs/puzzle-fullscreen-desktop.png) · [Pe telefon](docs/puzzle-fullscreen-phone.png) · [Landscape](docs/puzzle-fullscreen-landscape.png)
 
 ## Cavalerul Miau
 
@@ -81,7 +92,7 @@ Butonul **Ascultă** citește mesajul numai la cerere, prin vocea română insta
 
 ## Textele, indiciile și replicile
 
-Deschide **Atelier → Textele**. Catalogul are **214 texte editabile**: autentificare, aniversare, navigare, replicile cavalerului, reacții, butoane, titluri, indicii și explicații. Caută un cuvânt sau alege o categorie. Previzualizarea folosește valori de exemplu.
+Deschide **Atelier → Textele**. Catalogul are **236 texte editabile**: autentificare, aniversare, navigare, replicile cavalerului, reacții, butoane, titluri, indicii și explicații. Caută un cuvânt sau alege o categorie. Previzualizarea folosește valori de exemplu.
 
 - Schimbă numele cavalerului; referințele cu `{guide}` se actualizează automat.
 - Folosește variabilele afișate sub câmp: `{recipient}`, `{scalar}`, `{determinant}`, `{row}`, `{col}` și celelalte variabile specifice acelui text.
@@ -112,6 +123,7 @@ frontend/src/
   api.js                 client HTTP și sesiune expirată
   styles.css             componente de bază și responsive
   celebration.css        paleta aniversară, ghid și animații
+  puzzle.css             tablă cu dock persistent, fullscreen și landscape
 server/
   index.mjs              API, sesiuni, SQLite și fișiere statice
   accounts.mjs           generare / validare conturi din fișier
@@ -198,7 +210,7 @@ npm run test:browser
 
 Testele browser folosesc Edge instalat în Windows. Pe Linux/macOS rulează înainte `npx playwright install chromium`. Conturile, fotografiile și progresul testelor sunt create într-un director temporar și apoi eliminate. Capturile sunt salvate local în `artifacts/`, exclus din Git.
 
-Sunt testate operațiile și fracțiile, 1.500 de seturi generate, identitatea `A × A⁻¹ = I`, validarea, permisiunile, conturile, sesiunile, schimbarea parolei, upload-ul privat și persistența. Testele în browser verifică desktop/mobil, rezolvarea matricelor, puzzle prin click / drag / tastatură, administrarea, redarea a 500 de piese, editorul de texte, export/import, personalizarea vizibilă după login și pe telefon.
+Sunt testate operațiile și fracțiile, 1.500 de seturi generate, identitatea `A × A⁻¹ = I`, validarea, permisiunile, conturile, sesiunile, schimbarea parolei, upload-ul privat și persistența. Testele în browser verifică desktop/mobil, rezolvarea matricelor, puzzle prin click / drag / tastatură, administrarea, redarea a 500 de piese, editorul de texte, export/import, personalizarea vizibilă după login și pe telefon, ordinea provocărilor, fullscreen nativ, păstrarea cutiei la zoom și scroll, selecția touch, layout-ul landscape și fallback-ul fără fullscreen. Testele API includ deblocarea permanentă, exercițiile personalizate și compatibilitatea cu seturile terminate în versiunea anterioară.
 
 GitHub Actions rulează testele Node, compilarea și scenariile browser în Chromium. La eșec, capturile sunt disponibile ca artefact al rulării. `npm run format` formatează sursele cu Prettier.
 
@@ -208,6 +220,6 @@ GitHub Actions rulează testele Node, compilarea și scenariile browser în Chro
 - Progresul este persistent, dar aplicația are nevoie de conexiune pentru autentificare și salvare. Nu este un mod offline.
 - Setările provocărilor se actualizează la reîncărcare. Textele se reîncarcă și când revii în fereastră; nu există sincronizare în timp real.
 - Conturile sunt configurate local, fără resetare prin e-mail, înregistrare sau servicii externe.
-- Nu există cronometru, penalizări sau blocarea unei provocări în spatele celeilalte.
+- Nu există cronometru sau penalizări. Pentru invitată, matricile deblochează puzzle-ul.
 
 Referința inițială de arhitectură și stil este păstrată în [ORDERLY_BASELINE.md](ORDERLY_BASELINE.md).

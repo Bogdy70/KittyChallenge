@@ -59,7 +59,7 @@ const symbols = {
   subtract: "−",
   multiply: "×",
 };
-export default function MathChallenge({ celebrate, onProgress }) {
+export default function MathChallenge({ celebrate, onProgress, onPuzzle }) {
   const { t } = useMessages();
   const [run, setRun] = useState(null),
     [index, setIndex] = useState(0),
@@ -461,6 +461,11 @@ export default function MathChallenge({ celebrate, onProgress }) {
                 "math.toate-exercitiile-sunt-rezolvate-pisicutele-iti-trimit-o-runda-de",
               )}
             </p>
+            <p>{t("puzzle.unlocked")}</p>
+            <button className="button rainbow" onClick={onPuzzle}>
+              {t("puzzle.unlocked.action")}
+              <Icon name="arrow" />
+            </button>
           </div>
         </section>
       )}

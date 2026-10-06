@@ -171,6 +171,7 @@ function Dashboard({ settings, overview, navigate }) {
   const { t } = useMessages();
   const math = overview?.math,
     puzzle = overview?.puzzle;
+  const locked = !overview?.puzzleUnlocked;
   const done =
     !!math &&
     math.solved === math.exercises.length &&
@@ -287,20 +288,29 @@ function Dashboard({ settings, overview, navigate }) {
               <Icon name="arrow" />
             </button>
           </article>
-          <article className="challenge-card puzzle-card">
+          <article
+            className={`challenge-card puzzle-card ${locked ? "challenge-locked" : ""}`}
+          >
             <div className="card-top">
               <span className="number-label">{t("home.02-pentru-suflet")}</span>
               <span className="pill">
-                {puzzle?.count || 10}
+                {puzzle?.count || settings.puzzle.count || 10}
                 {" " + t("home.piese")}
               </span>
             </div>
             <div className="challenge-illustration puzzle-mini">
               <div className="polaroid">
-                <img
-                  src={puzzle?.url || "/demo-photo.svg"}
-                  alt={t("home.previzualizare-puzzle")}
-                />
+                {locked ? (
+                  <div className="locked-photo">
+                    <Icon name="lock" size={42} />
+                    <span>{t("puzzle.locked.label")}</span>
+                  </div>
+                ) : (
+                  <img
+                    src={puzzle?.url || "/demo-photo.svg"}
+                    alt={t("home.previzualizare-puzzle")}
+                  />
+                )}
                 <span>{t("home.o-amintire-piesa-cu-piesa")}</span>
               </div>
               <div className="puzzle-sticker">
@@ -309,22 +319,26 @@ function Dashboard({ settings, overview, navigate }) {
             </div>
             <h3>{t("home.piese-de-fericire")}</h3>
             <p>
-              {t(
-                "home.o-imagine-speciala-ascunsa-in-bucatele-pune-le-la-loc-si-descoper",
-              )}
+              {locked
+                ? t("puzzle.locked.message")
+                : t(
+                    "home.o-imagine-speciala-ascunsa-in-bucatele-pune-le-la-loc-si-descoper",
+                  )}
             </p>
             <Progress
               value={puzzle?.placed.length || 0}
-              max={puzzle?.count || 10}
+              max={puzzle?.count || settings.puzzle.count || 10}
               label={t("home.piese-la-locul-lor")}
             />
             <button
               className="button dark wide"
-              onClick={() => navigate("puzzle")}
+              onClick={() => navigate(locked ? "math" : "puzzle")}
             >
-              {puzzle?.placed.length
-                ? t("home.continua-povestea")
-                : t("home.descopera-puzzle-ul")}
+              {locked
+                ? t("puzzle.locked.action")
+                : puzzle?.placed.length
+                  ? t("home.continua-povestea")
+                  : t("home.descopera-puzzle-ul")}
               <Icon name="arrow" />
             </button>
           </article>
@@ -370,16 +384,18 @@ function AppContent() {
     [toast, setToast] = useState("");
   const refresh = useCallback(async () => {
     try {
-      const [s, math, puzzle] = await Promise.all([
+      const [s, math, journey] = await Promise.all([
         api("/settings"),
         api("/math"),
-        api("/puzzle"),
+        api("/journey"),
       ]);
+      const puzzle = journey.puzzleUnlocked ? await api("/puzzle") : null;
       setSettings(s);
       setMessages(s.messages || {});
       setOverview({
         math,
         puzzle,
+        puzzleUnlocked: journey.puzzleUnlocked,
       });
       setError("");
     } catch (e) {
@@ -504,7 +520,13 @@ function AppContent() {
               onClick={() => navigate(key)}
               aria-current={page === key ? "page" : undefined}
             >
-              <Icon name={icon} />
+              <Icon
+                name={
+                  key === "puzzle" && overview && !overview.puzzleUnlocked
+                    ? "lock"
+                    : icon
+                }
+              />
               <span>{label}</span>
             </button>
           ))}
@@ -547,9 +569,35 @@ function AppContent() {
             )}
           </>
         ) : page === "math" ? (
-          <MathChallenge celebrate={celebrate} onProgress={refresh} />
+          <MathChallenge
+            celebrate={celebrate}
+            onProgress={refresh}
+            onPuzzle={() => navigate("puzzle")}
+          />
         ) : page === "puzzle" ? (
-          <PuzzleChallenge celebrate={celebrate} onProgress={refresh} />
+          overview?.puzzleUnlocked ? (
+            <PuzzleChallenge celebrate={celebrate} onProgress={refresh} />
+          ) : (
+            <section className="panel puzzle-locked-panel">
+              <GuideSpeech
+                mood="thinking"
+                title={t("puzzle.locked.title")}
+                message={t("puzzle.locked.message")}
+              />
+              <Progress
+                value={overview?.math?.solved || 0}
+                max={overview?.math?.exercises.length || 5}
+                label={t("home.exercitii-rezolvate")}
+              />
+              <button
+                className="button rainbow"
+                onClick={() => navigate("math")}
+              >
+                <Icon name="matrix" />
+                {t("puzzle.locked.action")}
+              </button>
+            </section>
+          )
         ) : page === "admin" && user.role === "admin" ? (
           <Admin
             settings={settings}
